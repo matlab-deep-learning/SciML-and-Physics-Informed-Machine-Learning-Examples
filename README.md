@@ -66,7 +66,7 @@ Graph neural networks are neural network architectures designed to operate natur
 Explore the following examples on GNNs.
 
 * [Graph Neural Networks for Heat Transfer](./graph-neural-network-for-heat-transfer-problem/)
-* [Multivariate Time Series Anomaliy Detection Using Graph Neural Network](https://uk.mathworks.com/help/deeplearning/ug/multivariate-time-series-anomaly-detection-using-graph-neural-network.html)
+* [Multivariate Time Series Anomaly Detection Using Graph Neural Network](https://uk.mathworks.com/help/deeplearning/ug/multivariate-time-series-anomaly-detection-using-graph-neural-network.html)
 * [Node Classification Using Graph Convolutional Network](https://uk.mathworks.com/help/deeplearning/ug/node-classification-using-graph-convolutional-network.html)
 
 # Hamiltonian Neural Network examples
