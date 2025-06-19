@@ -3,6 +3,8 @@ function [geomModule, domainIDs, boundaryIDs, volume, boundaryArea, ReferencePoi
 % If you have an older version, use the helper function in this example: 
 % https://www.mathworks.com/help/pde/ug/battery-module-cooling-analysis-and-reduced-order-thermal-model.html
 
+% Copyright 2025 The MathWorks, Inc.
+
 % First, create a single pouch cell by unioning the cell, tab and connector
 % Cell creation
 cell1 = fegeometry(multicuboid(cellThickness,cellWidth,cellHeight));

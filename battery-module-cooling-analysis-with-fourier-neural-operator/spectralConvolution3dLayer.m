@@ -3,6 +3,8 @@ classdef spectralConvolution3dLayer < nnet.layer.Layer ...
         & nnet.layer.Acceleratable
     % spectralConvolution3dLayer   A custom layer implementation of
     % spectral convolution for data with 3 spatial dimensions.
+
+    % Copyright 2025 The MathWorks, Inc.
     
     properties
         Cin
