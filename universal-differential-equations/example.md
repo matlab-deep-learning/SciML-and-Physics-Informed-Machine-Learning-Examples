@@ -17,7 +17,8 @@ In the case that $\mathbf{f}$ is only partially known, for example $\mathbf{f}(t
 When $\mathbf{h}$ is replaced by a neural network ${\mathbf{h}}_{\theta }$, equation (1) becomes a neural ODE which can be trained via gradient descent.
 
 
-Once ${\mathbf{h}}_{\theta }$ has been trained, symbolic regression methods can be used to find a functional representation of ${\mathbf{h}}_{\theta }$, such as the SINDy method \[2\].
+Once $\mathbf{h}\_{\theta}$ 
+has been trained, symbolic regression methods can be used to find a functional representation of $\mathbf{h}_{\theta}$, such as the SINDy method \[2\].
 
 # Training data
 
@@ -96,7 +97,7 @@ XTrain = X(:,ts<=3);
 ```
 # Design Universal ODE
 
-Recall $\mathbf{f}(t,\mathbf{X})=\mathbf{g}(t,\mathbf{X})+\mathbf{h}(t,\mathbf{X})$ where $\mathbf{g}(t,\mathbf{X})=\mathbf{g}(t,(x,y))=(x,-y)$ is known, and $\mathbf{h}$ is to be approximated by a neural network ${\mathbf{h}}_{\theta }$. Let ${\mathbf{f}}_{\theta } (t,\mathbf{X})=\mathbf{g}(t,\mathbf{X})+{\mathbf{h}}_{\theta } (t,\mathbf{X})$. By representing $\mathbf{g}$ as a neural network layer it is possible to represent ${\mathbf{f}}_{\theta }$ as a neural network.
+Recall $\mathbf{f}(t,\mathbf{X})=\mathbf{g}(t,\mathbf{X})+\mathbf{h}(t,\mathbf{X})$ where $\mathbf{g}(t,\mathbf{X})=\mathbf{g}(t,(x,y))=(x,-y)$ is known, and $\mathbf{h}$ is to be approximated by a neural network ${\mathbf{h}}\_{\theta }$. Let ${\mathbf{f}}\_{\theta } (t,\mathbf{X})=\mathbf{g}(t,\mathbf{X})+{\mathbf{h}}\_{\theta } (t,\mathbf{X})$. By representing $\mathbf{g}$ as a neural network layer it is possible to represent ${\mathbf{f}}\_{\theta }$ as a neural network.
 
 ```matlab
 gFcn = @(X) [X(1,:); -X(2,:)];
@@ -117,7 +118,7 @@ hLayers = [
 hNet = dlnetwork(hLayers);
 ```
 
-Add the layer representing $\mathbf{g}$, connect the $\mathbf{X}$ input to $\mathbf{g}(\mathbf{X})$. Also add an `additionLayer` to perform the addition in ${\mathbf{f}}_{\theta } =\mathbf{g}+{\mathbf{h}}_{\theta }$ and connect ${\mathbf{h}}_{\theta }$ to this.
+Add the layer representing $\mathbf{g}$, connect the $\mathbf{X}$ input to $\mathbf{g}(\mathbf{X})$. Also add an `additionLayer` to perform the addition in ${\mathbf{f}}\_{\theta } =\mathbf{g}+{\mathbf{h}}\_{\theta }$ and connect ${\mathbf{h}}\_{\theta }$ to this.
 
 ```matlab
 fNet = addLayers(hNet, [gLayer; additionLayer(2,Name="add")]);
@@ -226,16 +227,16 @@ hNetTrained = initialize(hNetTrained);
 hNetTrained.Learnables = lrn;
 ```
 
-The SINDy method \[2\] takes a library of basis functions ${\mathbf{e}}_i (t,\mathbf{X}):[t_0 ,t_1 ]\times {\mathbb{R}}^n \to {\mathbb{R}}^n$ for $i=1,2,\ldots,N$ and sample points $(\tau_j ,{\mathbf{X}}_j )\in [t_0 ,t_1 ]\times {\mathbb{R}}^n$. The goal is to identify which terms ${\mathbf{e}}_i$ represent $h_{\theta }$. 
+The SINDy method \[2\] takes a library of basis functions ${\mathbf{e}}\_i (t,\mathbf{X}):[t\_0 ,t\_1 ]\times {\mathbb{R}}^n \to {\mathbb{R}}^n$ for $i=1,2,\ldots,N$ and sample points $(\tau\_j ,{\mathbf{X}}\_j )\in [t\_0 ,t\_1 ]\times {\mathbb{R}}^n$. The goal is to identify which terms ${\mathbf{e}}\_i$ represent $h\_{\theta }$. 
 
 
-Let $\mathbf{E}(t,\mathbf{X})=({\mathbf{e}}_1 (t,\mathbf{X}),\ldots,{\mathbf{e}}_N (t,\mathbf{X}))$ denote the matrix formed by concatenating all of the evaluations of the basis functions ${\mathbf{e}}_i$. Identifying terms ${\mathbf{e}}_i$ that make up ${\mathbf{h}}_{\theta }$ can be written as the linear problem ${\mathbf{h}}_{\theta } (t,\mathbf{X})=\mathbf{W}\mathbf{E}(t,\mathbf{X})$ for a matrix $\mathbf{W}$. 
+Let $\mathbf{E}(t,\mathbf{X})=({\mathbf{e}}\_1 (t,\mathbf{X}),\ldots,{\mathbf{e}}\_N (t,\mathbf{X}))$ denote the matrix formed by concatenating all of the evaluations of the basis functions ${\mathbf{e}}\_i$. Identifying terms ${\mathbf{e}}\_i$ that make up ${\mathbf{h}}\_{\theta }$ can be written as the linear problem ${\mathbf{h}}\_{\theta } (t,\mathbf{X})=\mathbf{W}\mathbf{E}(t,\mathbf{X})$ for a matrix $\mathbf{W}$. 
 
 
 The SINDy method proposes to use a sparse regression method to solve for $\mathbf{W}$. The sequentially thresholded least squares method \[2\] iteratively solves for $\mathbf{W}$ in the above problem, and zeros out the terms in $\mathbf{W}$ with absolute value below a specified threshold.
 
 
-Use the training data `XTrain` as the sample points ${\mathbf{X}}_j$ and evaluate ${\mathbf{h}}_{\theta } ({\mathbf{X}}_j )$.
+Use the training data `XTrain` as the sample points ${\mathbf{X}}\_j$ and evaluate ${\mathbf{h}}\_{\theta } ({\mathbf{X}}\_j )$.
 
 ```matlab
 Xextra = interp1(tsTrain,XTrain.', linspace(tsTrain(1), tsTrain(2), 100)).';
