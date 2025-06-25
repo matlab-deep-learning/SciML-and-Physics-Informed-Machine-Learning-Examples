@@ -81,4 +81,4 @@ The license is available in the [license.txt](./license.txt) file in this GitHub
 ## Community Support
 [MATLAB Central](https://www.mathworks.com/matlabcentral)
 
-Copyright 2024 The MathWorks, Inc.
+Copyright 2024-2025 The MathWorks, Inc.
