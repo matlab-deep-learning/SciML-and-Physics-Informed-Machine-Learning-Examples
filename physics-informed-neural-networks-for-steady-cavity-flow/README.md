@@ -12,20 +12,26 @@ The 2d, steady Navier\-Stokes equations for an incompressible fluid are:
 
  $$ u\frac{\partial v}{\partial x}+v\frac{\partial v}{\partial y}+\frac{\partial p}{\partial y}-\frac{1}{Re}\bigg(\frac{\partial^2 v}{\partial x^2 }+\frac{\partial^2 v}{\partial y^2 }\bigg)=0 $$ 
 
-`(x,y)` are the spatial coordinates, `(u,v)` is the fluid velocity, `p` is the pressure, `Re` is the Reynolds number.
+ $(x,y)$ are the spatial coordinates, $(u,v)$ is the fluid velocity, $p$ is the pressure and $Re$ is the Reynolds number.
 
 
-In order to automatically satisfy the continuity equation we use the stream function psi such that `u=psi_y` and `v=-psi_x`. The boundary conditions are `(u,v)=(1,0)` and the top boundary and `(u,v)=(0,0)` at the other boundaries. The Reynolds number `Re=100`.
+In order to automatically satisfy the continuity equation we use the stream function $\psi$, such that $u=\partial \psi /\partial y$ and $v=-\partial \psi /\partial x$. The boundary conditions are $(u,v)=(1,0)$ at the top boundary and $(u,v)=(0,0)$ at the other boundaries. Additionally, $\psi =0$ is assumed on all the boundaries. The Reynolds number is $Re=100$. 
 
 
-The PINNs model takes the spatial coordinates `(x,y)` as inputs and returns the streamfunction and pressure `(psi,p)` as outputs.
+The PINNs model takes the spatial coordinates $(x,y$ ) as inputs and returns the streamfunction and pressure $(\psi ,p)$ as outputs.
 
-# Set parameters.
+
+This work is inspired by the following GitHub repo: [https://github.com/okada39/pinn\_cavity](https://github.com/okada39/pinn_cavity) 
+
+## Set parameters.
 ```matlab
 Re = 100;
 u0 = 1;
 ```
-# Create network
+## Create network
+
+The core network architecture is a standard multi\-layer perceptron (MLP) with `numHiddenUnits=32` and swish activations. We use separate inputs for `x` and `y` because it makes it easier to compute derivatives with respect to these inputs later when imposing the PINNs loss. In addition to the MLP, we use anchor functions to impose the $\psi =0$ boundary condition. For example, the anchor function in $x$ ensures that the boundary condition is strictly enforced by multiplying the unconstrained network estimate for $\psi$ by the function $4x(1-x)$ \-\- which is $0$ at the boundaries (i.e. when $x=0$ or $x=1$ ). The factor $4$ is chosen so that the anchor function has a maximum of one. We include two anchor functions, one for the $x$ \-coordinate and one for the $y$ \-coordinate, then multiply them with the "free" $\psi$ estimation to produce the final output for $\psi$.
+
 ```matlab
 % Create basic MLP network architecture with two inputs (x,y) and two
 % outputs (psi,p).
@@ -62,8 +68,13 @@ net.OutputNames = ["psi", "p"];
 % Initialize the network and cast to double precision.
 net = initialize(net);
 net = dlupdate(@double, net);
+
+% Visually inspect the network.
+analyzeNetwork(net)
 ```
-# Create training input
+![figure_2.png](./images/figure_2.png)
+
+## Create training input
 ```matlab
 numTrainSamples = 1e4;
 xyEquation = rand([numTrainSamples 2]);
@@ -79,13 +90,16 @@ xyBoundary = cat(1, xyTopBottom, xyLeftRight);
 idxPerm = randperm(size(xyBoundary, 1));
 xyBoundary = xyBoundary(idxPerm, :);
 ```
-# Create training output
+## Create training output
 ```matlab
 zeroVector = zeros([numTrainSamples 1]);
 uvBoundary = [zeroVector zeroVector];
 uvBoundary(:, 1) = u0.*floor( xyBoundary(:, 2) );
 ```
-# Train the model
+## Train the model
+
+Train using the L\-BFGS optimizer, using a GPU is one is available.
+
 ```matlab
 % Prepare training data.
 xyEquation = dlarray(xyEquation);
@@ -95,57 +109,35 @@ if canUseGPU
     xyBoundary = gpuArray(xyBoundary);
 end
 
-% Create checkpointing directory.
-checkpointFrequency = 1e3;
-checkpointDirName = "checkpoints";
-if ~exist(checkpointDirName, "dir")
-    mkdir(checkpointDirName)
-end
+% Create training progress plot.
+monitor = trainingProgressMonitor();
+monitor.XLabel = "Iteration"; 
+monitor.Metrics = ["TotalLoss", "LossEqnX", "LossEqnY", "LossBC"];
+groupSubPlot(monitor, "Loss", ["TotalLoss", "LossEqnX", "LossEqnY", "LossBC"])
+yscale(monitor, "Loss", "log");
 
 % Train with L-BFGS.
-maxEpochs = 1e4;
+maxIterations = 1e4;
 solverState = [];
 lossFcn = dlaccelerate(@pinnsLossFunction);
 lbfgsLossFcn = @(n)dlfeval(lossFcn, n, xyEquation, xyBoundary, zeroVector, uvBoundary, Re);
-totalTime = 0;
-printFrequency = 1e3;
-for epoch = 1:maxEpochs
-    tic;
+for iteration = 1:maxIterations
     [net, solverState] = lbfgsupdate(net, lbfgsLossFcn, solverState, NumLossFunctionOutputs=5);
-    stepTime = toc;
 
-    % Print progress.
-    totalTime = totalTime + (stepTime/60);
-    if (mod(epoch, printFrequency) == 0) || (epoch == 1)
-        avgLoss = extractdata(solverState.Loss);
-        additionalLosses = solverState.AdditionalLossFunctionOutputs;
-        fprintf("Epoch=%g, Loss=%g, LossEqnX=%g, LossEqnY=%g, LossBC=%g, StepTime=%g(sec), TotalTime=%g(min)\n", ...
-            epoch, avgLoss, extractdata(additionalLosses{1}), extractdata(additionalLosses{2}), extractdata(additionalLosses{3}), stepTime, totalTime)
-    end
-
-    % Checkpoint models.
-    if mod(epoch, checkpointFrequency) == 0
-        fname = checkpointDirName + "/checkpoint" + epoch + ".mat";
-        save(fname, "epoch" , "net", "solverState");
-    end
+    % loss = extractdata(solverState.Loss);
+    additionalLosses = solverState.AdditionalLossFunctionOutputs;
+    % additionalLosses = cellfun(@extractdata, additionalLosses);
+    recordMetrics(monitor, ...
+        iteration, ...
+        TotalLoss=solverState.Loss, ...
+        LossEqnX=additionalLosses{1}, ...
+        LossEqnY=additionalLosses{2}, ...
+        LossBC=additionalLosses{3});
 end
 ```
 
-```matlabTextOutput
-Epoch=1, Loss=0.0478566, LossEqnX=0.00161311, LossEqnY=0.000700008, LossBC=0.0455435, StepTime=6.9278(sec), TotalTime=0.115463(min)
-Epoch=1000, Loss=0.0111163, LossEqnX=0.00113609, LossEqnY=0.00175239, LossBC=0.00822781, StepTime=0.549713(sec), TotalTime=10.533(min)
-Epoch=2000, Loss=0.00458981, LossEqnX=0.000568193, LossEqnY=0.000446531, LossBC=0.00357509, StepTime=0.536273(sec), TotalTime=20.0007(min)
-Epoch=3000, Loss=0.00323042, LossEqnX=0.000332672, LossEqnY=0.000292068, LossBC=0.00260568, StepTime=0.589592(sec), TotalTime=29.5363(min)
-Epoch=4000, Loss=0.00251265, LossEqnX=0.00022759, LossEqnY=0.000254729, LossBC=0.00203033, StepTime=0.55894(sec), TotalTime=39.0617(min)
-Epoch=5000, Loss=0.00196831, LossEqnX=0.000144764, LossEqnY=0.000253774, LossBC=0.00156977, StepTime=0.71958(sec), TotalTime=48.6113(min)
-Epoch=6000, Loss=0.00171982, LossEqnX=0.000118098, LossEqnY=0.000202597, LossBC=0.00139912, StepTime=0.555523(sec), TotalTime=58.1185(min)
-Epoch=7000, Loss=0.00155908, LossEqnX=0.000107693, LossEqnY=0.00017737, LossBC=0.00127401, StepTime=0.550588(sec), TotalTime=67.5455(min)
-Epoch=8000, Loss=0.00138491, LossEqnX=0.000104246, LossEqnY=0.000154897, LossBC=0.00112576, StepTime=0.618169(sec), TotalTime=77.1895(min)
-Epoch=9000, Loss=0.00125279, LossEqnX=8.98351e-05, LossEqnY=0.000136248, LossBC=0.00102671, StepTime=0.661462(sec), TotalTime=87.8465(min)
-Epoch=10000, Loss=0.00115977, LossEqnX=6.97302e-05, LossEqnY=0.000131284, LossBC=0.00095876, StepTime=0.611056(sec), TotalTime=99.4731(min)
-```
-
-# Plot predictions
+![figure_0.png](./images/figure_0.png)
+## Plot predictions
 ```matlab
 % Create test set using meshgrid.
 numTestSamples = 100;
@@ -196,8 +188,8 @@ axis equal
 title('v')
 ```
 
-![figure_0.png](README_media/figure_0.png)
-# Loss function and helper functions
+![figure_1.png](./images/figure_1.png)
+## Loss function and helper functions
 ```matlab
 function [loss, grads, lossEqnX, lossEqnY, lossBC] = pinnsLossFunction(net, xyEquation, xyBoundary, zeroVector, uvBoundary, Re)
 
@@ -207,25 +199,21 @@ yeq = xyEquation(:, 2);
 [psi, p] = forward(net, xeq, yeq);
 
 % Compute gradients.
-psisum = sum(psi,1);
-u = dlgradient(psisum, yeq, EnableHigherDerivatives=true);
-v = -1.*dlgradient(psisum, xeq, EnableHigherDerivatives=true);
+u = dljacobian(psi', yeq, 1);
+v = -1.*dljacobian(psi', xeq, 1);
 
-usum = sum(u,1);
-ux = dlgradient(usum, xeq, EnableHigherDerivatives=true);
-uy = dlgradient(usum, yeq, EnableHigherDerivatives=true);
-uxx = dlgradient(sum(ux,1), xeq, EnableHigherDerivatives=true);
-uyy = dlgradient(sum(uy,1), yeq, EnableHigherDerivatives=true);
+ux = dljacobian(u', xeq, 1);
+uy = dljacobian(u', yeq, 1);
+uxx = dljacobian(ux', xeq, 1);
+uyy = dljacobian(uy', yeq, 1);
 
-vsum = sum(v,1);
-vx = dlgradient(vsum, xeq, EnableHigherDerivatives=true);
-vy = dlgradient(vsum, yeq, EnableHigherDerivatives=true);
-vxx = dlgradient(sum(vx,1), xeq, EnableHigherDerivatives=true);
-vyy = dlgradient(sum(vy,1), yeq, EnableHigherDerivatives=true);
+vx = dljacobian(v', xeq, 1);
+vy = dljacobian(v', yeq, 1);
+vxx = dljacobian(vx', xeq, 1);
+vyy = dljacobian(vy', yeq, 1);
 
-psum = sum(p,1);
-px = dlgradient(psum, xeq, EnableHigherDerivatives=true);
-py = dlgradient(psum, yeq, EnableHigherDerivatives=true);
+px = dljacobian(p', xeq, 1);
+py = dljacobian(p', yeq, 1);
 
 % Momentum equations.
 lx = u.*ux + v.*uy + px - (1/Re).*(uxx + uyy);
@@ -240,9 +228,8 @@ xbd = xyBoundary(:, 1);
 ybd = xyBoundary(:, 2);
 psibd = forward(net, xbd, ybd);
 
-psibdsum = sum(psibd,1);
-ubd = dlgradient(psibdsum, ybd, EnableHigherDerivatives=true);
-vbd = -1.*dlgradient(psibdsum, xbd, EnableHigherDerivatives=true);
+ubd = dljacobian(psibd', ybd, 1);
+vbd = -1.*dljacobian(psibd', xbd, 1);
 
 uvbd = cat(2, ubd, vbd);
 lossBC = logCoshLoss(uvbd, uvBoundary);
@@ -262,9 +249,8 @@ function [psi, p, u, v] = calculateStreamfunctionPressureAndVelocity(net, x, y)
 % Compute the streamfunction psi, pressure p and velocity (u,v) given
 % input positions (x,y).
 [psi, p] = forward(net, x, y);
-psisum = sum(psi,1);
-u = dlgradient(psisum, y);
-v = -1.*dlgradient(psisum, x);
+u = dljacobian(psi', y, 1);
+v = -1.*dljacobian(psi', x, 1);
 end
 
 function x = unflattenAndExtract(xflat, sz)
@@ -272,3 +258,15 @@ x = reshape(xflat, [sz sz]);
 x = extractdata(x);
 end
 ```
+
+#### Requirements
+- [MATLAB &reg;](https://mathworks.com/products/matlab.html) (R2025a or newer)
+- [Deep Learning Toolbox<sup>TM</sup>](https://mathworks.com/products/deep-learning.html)
+
+#### References
+[1] [https://github.com/okada39/pinn\_cavity](https://github.com/okada39/pinn_cavity)
+
+#### Community Support
+[MATLAB Central](https://www.mathworks.com/matlabcentral)
+
+Copyright 2025 The MathWorks, Inc.

@@ -1,4 +1,7 @@
 %% Cavity flow with Physics-Informed Neural Networks
+
+%   Copyright 2025 The MathWorks, Inc.
+
 % Solve cavity flow governed by 2d steady Navier-Stokes equations and continuity 
 % equation, using a Physics-Informed Neural Network (PINN).
 % 
@@ -14,21 +17,36 @@
 % p}{\partial y} - \frac{1}{Re}\bigg( \frac{\partial^2 v}{\partial x^2} + \frac{\partial^2 
 % v}{\partial y^2} \bigg) = 0$$
 % 
-% |(x,y)| are the spatial coordinates, |(u,v)| is the fluid velocity, |p| is 
-% the pressure, |Re| is the Reynolds number.
+% $(x,y)$ are the spatial coordinates, $(u,v)$ is the fluid velocity, $p$ is 
+% the pressure and $Re$ is the Reynolds number.
 % 
 % In order to automatically satisfy the continuity equation we use the stream 
-% function psi such that |u=psi_y| and |v=-psi_x|. The boundary conditions are 
-% |(u,v)=(1,0)| and the top boundary and |(u,v)=(0,0)| at the other boundaries. 
-% The Reynolds number |Re=100|.
+% function $\psi$, such that $u = \partial\psi / \partial y$ and $v = -\partial\psi 
+% /\partial x$. The boundary conditions are $(u,v)=(1,0)$ at the top boundary 
+% and $(u,v)=(0,0)$ at the other boundaries. Additionally, $\psi=0$ is assumed 
+% on all the boundaries. The Reynolds number is $Re=100$. 
 % 
-% The PINNs model takes the spatial coordinates |(x,y)| as inputs and returns 
-% the streamfunction and pressure |(psi,p)| as outputs.
+% The PINNs model takes the spatial coordinates $(x,y$) as inputs and returns 
+% the streamfunction and pressure $(\psi, p)$ as outputs.
+% 
+% This work is inspired by the following GitHub repo: <https://github.com/okada39/pinn_cavity 
+% https://github.com/okada39/pinn_cavity> 
 %% Set parameters.
 
 Re = 100;
 u0 = 1;
 %% Create network
+% The core network architecture is a standard multi-layer perceptron (MLP) with 
+% |numHiddenUnits=32| and swish activations. We use separate inputs for |x| and 
+% |y| because it makes it easier to compute derivatives with respect to these 
+% inputs later when imposing the PINNs loss. In addition to the MLP, we use anchor 
+% functions to impose the $\psi=0$ boundary condition. For example, the anchor 
+% function in $x$ ensures that the boundary condition is strictly enforced by 
+% multiplying the unconstrained network estimate for $\psi$ by the function $4x(1-x)$ 
+% -- which is $0$ at the boundaries (i.e. when $x=0$ or $x=1$). The factor $4$ 
+% is chosen so that the anchor function has a maximum of one. We include two anchor 
+% functions, one for the $x$-coordinate and one for the $y$-coordinate, then multiply 
+% them with the "free" $\psi$ estimation to produce the final output for $\psi$.
 
 % Create basic MLP network architecture with two inputs (x,y) and two
 % outputs (psi,p).
@@ -65,6 +83,9 @@ net.OutputNames = ["psi", "p"];
 % Initialize the network and cast to double precision.
 net = initialize(net);
 net = dlupdate(@double, net);
+
+% Visually inspect the network.
+analyzeNetwork(net)
 %% Create training input
 
 numTrainSamples = 1e4;
@@ -86,6 +107,7 @@ zeroVector = zeros([numTrainSamples 1]);
 uvBoundary = [zeroVector zeroVector];
 uvBoundary(:, 1) = u0.*floor( xyBoundary(:, 2) );
 %% Train the model
+% Train using the L-BFGS optimizer, using a GPU is one is available.
 
 % Prepare training data.
 xyEquation = dlarray(xyEquation);
@@ -95,39 +117,30 @@ if canUseGPU
     xyBoundary = gpuArray(xyBoundary);
 end
 
-% Create checkpointing directory.
-checkpointFrequency = 1e3;
-checkpointDirName = "checkpoints";
-if ~exist(checkpointDirName, "dir")
-    mkdir(checkpointDirName)
-end
+% Create training progress plot.
+monitor = trainingProgressMonitor();
+monitor.XLabel = "Iteration"; 
+monitor.Metrics = ["TotalLoss", "LossEqnX", "LossEqnY", "LossBC"];
+groupSubPlot(monitor, "Loss", ["TotalLoss", "LossEqnX", "LossEqnY", "LossBC"])
+yscale(monitor, "Loss", "log");
 
 % Train with L-BFGS.
-maxEpochs = 1e4;
+maxIterations = 1e4;
 solverState = [];
 lossFcn = dlaccelerate(@pinnsLossFunction);
 lbfgsLossFcn = @(n)dlfeval(lossFcn, n, xyEquation, xyBoundary, zeroVector, uvBoundary, Re);
-totalTime = 0;
-printFrequency = 1e3;
-for epoch = 1:maxEpochs
-    tic;
+for iteration = 1:maxIterations
     [net, solverState] = lbfgsupdate(net, lbfgsLossFcn, solverState, NumLossFunctionOutputs=5);
-    stepTime = toc;
 
-    % Print progress.
-    totalTime = totalTime + (stepTime/60);
-    if (mod(epoch, printFrequency) == 0) || (epoch == 1)
-        avgLoss = extractdata(solverState.Loss);
-        additionalLosses = solverState.AdditionalLossFunctionOutputs;
-        fprintf("Epoch=%g, Loss=%g, LossEqnX=%g, LossEqnY=%g, LossBC=%g, StepTime=%g(sec), TotalTime=%g(min)\n", ...
-            epoch, avgLoss, extractdata(additionalLosses{1}), extractdata(additionalLosses{2}), extractdata(additionalLosses{3}), stepTime, totalTime)
-    end
-
-    % Checkpoint models.
-    if mod(epoch, checkpointFrequency) == 0
-        fname = checkpointDirName + "/checkpoint" + epoch + ".mat";
-        save(fname, "epoch" , "net", "solverState");
-    end
+    % loss = extractdata(solverState.Loss);
+    additionalLosses = solverState.AdditionalLossFunctionOutputs;
+    % additionalLosses = cellfun(@extractdata, additionalLosses);
+    recordMetrics(monitor, ...
+        iteration, ...
+        TotalLoss=solverState.Loss, ...
+        LossEqnX=additionalLosses{1}, ...
+        LossEqnY=additionalLosses{2}, ...
+        LossBC=additionalLosses{3});
 end
 %% Plot predictions
 
@@ -188,25 +201,21 @@ yeq = xyEquation(:, 2);
 [psi, p] = forward(net, xeq, yeq);
 
 % Compute gradients.
-psisum = sum(psi,1);
-u = dlgradient(psisum, yeq, EnableHigherDerivatives=true);
-v = -1.*dlgradient(psisum, xeq, EnableHigherDerivatives=true);
+u = dljacobian(psi', yeq, 1);
+v = -1.*dljacobian(psi', xeq, 1);
 
-usum = sum(u,1);
-ux = dlgradient(usum, xeq, EnableHigherDerivatives=true);
-uy = dlgradient(usum, yeq, EnableHigherDerivatives=true);
-uxx = dlgradient(sum(ux,1), xeq, EnableHigherDerivatives=true);
-uyy = dlgradient(sum(uy,1), yeq, EnableHigherDerivatives=true);
+ux = dljacobian(u', xeq, 1);
+uy = dljacobian(u', yeq, 1);
+uxx = dljacobian(ux', xeq, 1);
+uyy = dljacobian(uy', yeq, 1);
 
-vsum = sum(v,1);
-vx = dlgradient(vsum, xeq, EnableHigherDerivatives=true);
-vy = dlgradient(vsum, yeq, EnableHigherDerivatives=true);
-vxx = dlgradient(sum(vx,1), xeq, EnableHigherDerivatives=true);
-vyy = dlgradient(sum(vy,1), yeq, EnableHigherDerivatives=true);
+vx = dljacobian(v', xeq, 1);
+vy = dljacobian(v', yeq, 1);
+vxx = dljacobian(vx', xeq, 1);
+vyy = dljacobian(vy', yeq, 1);
 
-psum = sum(p,1);
-px = dlgradient(psum, xeq, EnableHigherDerivatives=true);
-py = dlgradient(psum, yeq, EnableHigherDerivatives=true);
+px = dljacobian(p', xeq, 1);
+py = dljacobian(p', yeq, 1);
 
 % Momentum equations.
 lx = u.*ux + v.*uy + px - (1/Re).*(uxx + uyy);
@@ -221,9 +230,8 @@ xbd = xyBoundary(:, 1);
 ybd = xyBoundary(:, 2);
 psibd = forward(net, xbd, ybd);
 
-psibdsum = sum(psibd,1);
-ubd = dlgradient(psibdsum, ybd, EnableHigherDerivatives=true);
-vbd = -1.*dlgradient(psibdsum, xbd, EnableHigherDerivatives=true);
+ubd = dljacobian(psibd', ybd, 1);
+vbd = -1.*dljacobian(psibd', xbd, 1);
 
 uvbd = cat(2, ubd, vbd);
 lossBC = logCoshLoss(uvbd, uvBoundary);
@@ -243,9 +251,8 @@ function [psi, p, u, v] = calculateStreamfunctionPressureAndVelocity(net, x, y)
 % Compute the streamfunction psi, pressure p and velocity (u,v) given
 % input positions (x,y).
 [psi, p] = forward(net, x, y);
-psisum = sum(psi,1);
-u = dlgradient(psisum, y);
-v = -1.*dlgradient(psisum, x);
+u = dljacobian(psi', y, 1);
+v = -1.*dljacobian(psi', x, 1);
 end
 
 function x = unflattenAndExtract(xflat, sz)
