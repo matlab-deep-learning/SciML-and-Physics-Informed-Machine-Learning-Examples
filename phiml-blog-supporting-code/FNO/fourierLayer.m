@@ -1,8 +1,8 @@
-function layer = fourierLayer(tWidth,numModes,args)
+function layer = fourierLayer(numModes,tWidth,args)
 
 arguments
-    tWidth
     numModes
+    tWidth
     args.Name = ""
 end
 name = args.Name;
@@ -11,7 +11,7 @@ net = dlnetwork;
 
 layers = [
     identityLayer(Name="in")
-    spectralConvolution1dLayer(tWidth,numModes,Name="specConv")
+    spectralConvolution1dLayer(numModes,tWidth,Name="specConv")
     additionLayer(2,Name="add")];
 
 net = addLayers(net,layers);

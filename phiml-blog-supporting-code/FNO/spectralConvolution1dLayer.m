@@ -14,7 +14,7 @@ classdef spectralConvolution1dLayer < nnet.layer.Layer ...
     end
     
     methods
-        function this = spectralConvolution1dLayer(outChannels,numModes,args)
+        function this = spectralConvolution1dLayer(numModes,outChannels,args)
             % spectralConvolution1dLayer   1-D Spectral Convolution Layer
             %
             %   layer = spectralConvolution1dLayer(outChannels, numModes)
@@ -34,8 +34,8 @@ classdef spectralConvolution1dLayer < nnet.layer.Layer ...
             %                 default value is [].
 
             arguments
-                outChannels (1,1) double
                 numModes    (1,1) double
+                outChannels (1,1) double
                 args.Name {mustBeTextScalar} = "spectralConv1d"
                 args.Weights = []
             end
