@@ -18,6 +18,8 @@ arguments
     splits {mustBeVector,mustBeInRange(splits,0,1,"exclusive"),mustSumToOne}
 end
 
+rng(0); % for reproducibility
+
 numPartitions = numel(splits);
 varargout = cell(1,numPartitions);
 
