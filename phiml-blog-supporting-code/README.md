@@ -16,10 +16,10 @@ The techniques described for the pendulum are categorized by their primary objec
     2. **Fourier Neural Operator**: learns the solution operator that maps input functions (e.g. forcing function) to the solution of a differential equation, utilizing Fourier transforms to parameterize the integral kernel and efficiently capture global dependencies.   
 
 ## Setup
-Open the project file physics-informed-ml-blog-supporting-code.prj to correctly set the path.  
+Run startup.m to correctly set the path.  
 
 ## MathWorks Products ([https://www.mathworks.com](https://www.mathworks.com/))
-Requires MATLAB&reg; R2024a or newer
+Created and tested with MATLAB&reg; R2025a
 - [Deep Learning Toolbox&trade;](https://www.mathworks.com/products/deep-learning.html)
 
 ## License
