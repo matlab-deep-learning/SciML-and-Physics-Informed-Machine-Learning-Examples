@@ -22,9 +22,10 @@
 % 
 % In order to automatically satisfy the continuity equation we use the stream 
 % function $\psi$, such that $u = \partial\psi / \partial y$ and $v = -\partial\psi 
-% /\partial x$. The boundary conditions are $(u,v)=(1,0)$ at the top boundary 
-% and $(u,v)=(0,0)$ at the other boundaries. Additionally, $\psi=0$ is assumed 
-% on all the boundaries. The Reynolds number is $Re=100$. 
+% /\partial x$. The cavity is defined as the square domain $[0,1]\times
+% [0,1]$. The boundary conditions are $(u,v)=(1,0)$ at the top boundary and
+% $(u,v)=(0,0)$ at the other boundaries. Additionally, $\psi=0$ is assumed
+% on all the boundaries. The Reynolds number is $Re=100$.
 % 
 % The PINNs model takes the spatial coordinates $(x,y$) as inputs and returns 
 % the streamfunction and pressure $(\psi, p)$ as outputs.
