@@ -24,6 +24,7 @@ The PINNs model takes the spatial coordinates $(x,y)$ as inputs and returns the 
 This work is inspired by the following GitHub repo: [https://github.com/okada39/pinn\_cavity](https://github.com/okada39/pinn_cavity) 
 
 ## Set parameters
+
 ```matlab
 Re = 100;
 u0 = 1;
