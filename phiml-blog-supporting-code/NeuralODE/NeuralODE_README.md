@@ -16,10 +16,6 @@ We rewrite this as a first\-order system:
 
 In the Neural ODE framework, the unknown dynamics $\mathbf{f}$ are approximated using a neural network, which is trained to fit the observed trajectories. 
 
-```matlab
-rng(0); % for reproducibility
-warning('off');
-```
 # Prepare Data for Training
 
 Load the data contained in  `pendulum_qp_dqdp.mat` if it already exists, or generate and save the data if not. 
@@ -118,7 +114,6 @@ nODElayers = [
     GradientMode="adjoint", ... 
     Name="ODElayer")
 ];
-rng(0); % for reproducibility
 nODEnet = dlnetwork(nODElayers);
 ```
 # Specify Training Options
@@ -142,7 +137,6 @@ opts = trainingOptions("adam", ...
 Train the model to fit the noisy pendulum data.
 
 ```matlab
-rng(0); % for reproducibility
 nODEnet = trainnet(Xtrain, Ytrain, nODEnet, "l2loss", opts);
 ```
 

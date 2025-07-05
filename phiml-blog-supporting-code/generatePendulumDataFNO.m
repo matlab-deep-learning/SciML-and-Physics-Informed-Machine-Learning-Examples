@@ -18,5 +18,5 @@ for i = res
     
     % Save the data
     save(fullfile(dataDir, sprintf('fno_data_%d.mat',i)), 'data');
-    fprintf('FNO data of resolution %d written to fno_data_%d.mat',i,i);
+    fprintf('FNO data of resolution %d written to fno_data_%d.mat \n',i,i);
 end

@@ -21,7 +21,6 @@
 % (PDEs), where traditional solvers (e.g. finite element method) are computationally 
 % expensive.
 
-rng(0); % for reproducibility 
 %% Generate or Import Data
 
 % Get the path to the main directory
@@ -32,8 +31,8 @@ generateData = 1;
 if generateData
     g = 9.81; r = 1; 
     omega0 = sqrt(g/r);
-    x0 = [0;1.99*sqrt(9.81)];
-    numSamples = 3000;
+    x0 = [0.5;0.5*sqrt(g/r)];
+    numSamples = 2000;
     doPlot = 0;
     generatePendulumDataFNO(omega0,x0,numSamples,res,doPlot);
 end
@@ -65,7 +64,6 @@ for i = 1:numPlots
     title("Observation " + i + newline + "Forcing Function")
     xlabel("$t$",Interpreter='latex');
     ylabel("$f(t)$",Interpreter='latex');
-
     nexttile
     plot(t,theta(i,:));
     title("ODE Solution")
@@ -115,7 +113,7 @@ schedule = piecewiseLearnRate(DropFactor=0.5);
 options = trainingOptions("adam", ...
     InitialLearnRate=1e-3, ...
     LearnRateSchedule=schedule, ...
-    MaxEpochs=50, ...
+    MaxEpochs=10, ...
     MiniBatchSize=64, ...
     Shuffle="every-epoch", ...
     InputDataFormats="BSC", ...
@@ -124,7 +122,6 @@ options = trainingOptions("adam", ...
     Verbose=false);
 %% Train the Network
 
-rng(0); % for reproducibility
 net = trainnet(fTrain,thetaTrain,layers,"mse",options);
 %% Test the Model and Visualize Results
 

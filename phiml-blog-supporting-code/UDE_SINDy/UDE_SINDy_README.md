@@ -24,10 +24,6 @@ We reforumulate this as a system of first\-order ODEs:
 
 where $\mathbf{g}$ captures the known pendulum dynamics, and the unknown component $h$ is approximated using a neural network. 
 
-```matlab
-rng(0); % for reproducibility
-warning('off');
-```
 # Prepare Data for Training
 
 Import the data contained in  `pendulum_with_damping_qp_dqpdp_F.mat` if it already exists, or generate and save the data if not.
@@ -152,7 +148,6 @@ nODElayers = [
     GradientMode="adjoint", ...
     Name="ODElayer")
 ];
-rng(0); % for reproducibility
 nODEnet = dlnetwork(nODElayers);
 ```
 # Specify Training Options
@@ -173,7 +168,6 @@ opts = trainingOptions("adam", ...
 ```
 # Train the Network
 ```matlab
-rng(0); % for reproducibility
 nODEnet = trainnet(Xtrain, Ytrain, nODEnet, "l2loss", opts);
 ```
 
@@ -319,6 +313,7 @@ function dXdt = identifiedModel(X,W,E)
     % dXdt = dXdt + WE;
 end
 
+W = double(W);
 Fidentified = ode(ODEFcn = @(t,X) identifiedModel(X,W,E), ...
     InitialValue=Y(1,:));
 S = solve(Fidentified,tTrain);

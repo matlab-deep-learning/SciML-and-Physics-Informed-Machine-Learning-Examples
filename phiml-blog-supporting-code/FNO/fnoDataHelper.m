@@ -5,6 +5,7 @@ function [fSamples, thetaSamples, grid] = fnoDataHelper(numModes, numSamples, om
     % omega0: natural frequency
     % x0: initial condition
     % gridSize: number of points in t domain
+    % doPlot: option to plot samples
 
     % Example usage
     % f_samples = generate_forcing_functions(5, 2048, 512, 10);
@@ -20,8 +21,8 @@ function [fSamples, thetaSamples, grid] = fnoDataHelper(numModes, numSamples, om
     thetaSamples = zeros(numSamples, length(tSol));
 
     % scaling factor
-    sigma = 0.1;
-
+    sigma = 0.5;
+    
     % Generate samples
     for j = 1:numSamples
         % Initialize the sample

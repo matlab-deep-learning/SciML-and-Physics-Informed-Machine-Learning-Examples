@@ -17,7 +17,6 @@
 % and the given measurements of $\theta$, and 
 % * a physics loss, which penalizes violations of the governing pendulum equation. 
 
-rng(0); % for reproducibility
 %% Prepare Data for Training
 % Load the data contained in |pendulum_qp_dqdp.mat| if it already exists, or 
 % generate and save the data if not.

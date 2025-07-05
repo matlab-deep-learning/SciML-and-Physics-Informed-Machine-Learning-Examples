@@ -14,9 +14,7 @@ The network is trained to minimize a composite loss function that includes:
 
 -  a data loss, which penalizes the difference between the network's predictions and the given measurements of $\theta$, and  
 -  a physics loss, which penalizes violations of the governing pendulum equation.  
-```matlab
-rng(0); % for reproducibility
-```
+
 # Prepare Data for Training
 
 Load the data contained in  `pendulum_qp_dqdp.mat` if it already exists, or generate and save the data if not.

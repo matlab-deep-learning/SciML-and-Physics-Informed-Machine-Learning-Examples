@@ -31,7 +31,6 @@
 % 
 % using the learned Hamiltonian. 
 
-rng(0); % for reproducibility
 %% Prepare Data for Training
 % Load the data contained in |pendulum_qp_dqdp.mat| if it already exists, or 
 % generate and save the data if not. 
@@ -155,7 +154,6 @@ tol = 1e-2;
 loss = 1000;
 while epoch < numEpochs && ~monitor.Stop && loss > tol
     epoch = epoch + 1;
-    rng(0); % for reproducibility
     shuffle(mbq);
     while hasdata(mbq) && ~monitor.Stop
         iteration = iteration + 1;

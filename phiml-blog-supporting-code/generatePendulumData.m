@@ -96,7 +96,7 @@ end
 % Save the data
 save(fullfile(dataDir, 'pendulum_qp_dqdp.mat'), 'data');
 
-disp('Pendulum data written to pendulum_qp_dqdp.mat');
+disp('Pendulum data written to pendulum_qp_dqdp.mat \n');
 
 
 end

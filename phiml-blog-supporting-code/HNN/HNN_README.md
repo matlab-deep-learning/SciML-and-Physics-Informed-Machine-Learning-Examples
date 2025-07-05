@@ -25,9 +25,6 @@ to ensure the learned Hamiltonian produces physically consistent dynamics. Once 
 
 using the learned Hamiltonian. 
 
-```matlab
-rng(0); % for reproducibility
-```
 <a id="TMP_42e5"></a>
 
 # Prepare Data for Training
@@ -186,7 +183,6 @@ tol = 1e-2;
 loss = 1000;
 while epoch < numEpochs && ~monitor.Stop && loss > tol
     epoch = epoch + 1;
-    rng(0); % for reproducibility
     shuffle(mbq);
     while hasdata(mbq) && ~monitor.Stop
         iteration = iteration + 1;

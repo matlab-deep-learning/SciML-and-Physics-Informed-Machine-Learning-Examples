@@ -17,8 +17,6 @@
 % In the Neural ODE framework, the unknown dynamics $\bf\it{f}$ are approximated 
 % using a neural network, which is trained to fit the observed trajectories. 
 
-rng(0); % for reproducibility
-warning('off');
 %% Prepare Data for Training
 % Load the data contained in |pendulum_qp_dqdp.mat| if it already exists, or 
 % generate and save the data if not. 
@@ -111,7 +109,6 @@ nODElayers = [
     GradientMode="adjoint", ... 
     Name="ODElayer")
 ];
-rng(0); % for reproducibility
 nODEnet = dlnetwork(nODElayers);
 %% Specify Training Options
 % Here we use the ADAM optimizer with settings like a minibatch size of 50 and 
@@ -130,7 +127,6 @@ opts = trainingOptions("adam", ...
 %% Train the Network
 % Train the model to fit the noisy pendulum data.
 
-rng(0); % for reproducibility
 nODEnet = trainnet(Xtrain, Ytrain, nODEnet, "l2loss", opts);
 %% Predict the Pendulum Trajectory
 % Used the trained network to predict the pendulum's trajectory. 

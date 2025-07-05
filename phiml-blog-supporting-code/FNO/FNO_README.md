@@ -15,9 +15,6 @@ Traditionally, solving this system for a new forcing function $f$ requires numer
 
 The FNO is trained on a dataset of input\-output pairs $(f_i (t),\theta_i (t))$, and once trained, it can predict $\theta$ for unseen forcing functions. While this approach may be excessive for simple ODEs like the pendulum, it can be advantageous for complex simulations involving partial differential equations (PDEs), where traditional solvers (e.g. finite element method) are computationally expensive.
 
-```matlab
-rng(0); % for reproducibility 
-```
 # Generate or Import Data
 ```matlab
 % Get the path to the main directory
@@ -28,18 +25,11 @@ generateData = 1;
 if generateData
     g = 9.81; r = 1; 
     omega0 = sqrt(g/r);
-    x0 = [0;1.99*sqrt(9.81)];
-    numSamples = 3000;
+    x0 = [0.5;0.5*sqrt(g/r)];
+    numSamples = 2000;
     doPlot = 0;
     generatePendulumDataFNO(omega0,x0,numSamples,res,doPlot);
 end
-```
-
-```matlabTextOutput
-FNO data of resolution 512 written to fno_data_512.mat
-```
-
-```matlab
 % Construct full path to the data file
 dataFile = fullfile(mainDir, 'pendulumData', sprintf('fno_data_%d.mat',res));
 % Read the data
@@ -76,6 +66,8 @@ for i = 1:numPlots
     ylabel("$\theta(t)$",Interpreter='latex')
 end
 ```
+
+![figure_0.png](FNO_README_media/figure_0.png)
 # Prepare Training Data
 ```matlab
 numObservations = size(f,1);
@@ -101,7 +93,7 @@ size(fTrain)
 
 ```matlabTextOutput
 ans = 1x3
-        2400         512           2
+        1600         512           2
 
 ```
 
@@ -111,7 +103,7 @@ size(fValidation)
 
 ```matlabTextOutput
 ans = 1x3
-   300   512     2
+   200   512     2
 
 ```
 
@@ -143,7 +135,7 @@ schedule = piecewiseLearnRate(DropFactor=0.5);
 options = trainingOptions("adam", ...
     InitialLearnRate=1e-3, ...
     LearnRateSchedule=schedule, ...
-    MaxEpochs=50, ...
+    MaxEpochs=10, ...
     MiniBatchSize=64, ...
     Shuffle="every-epoch", ...
     InputDataFormats="BSC", ...
@@ -153,11 +145,10 @@ options = trainingOptions("adam", ...
 ```
 # Train the Network
 ```matlab
-rng(0); % for reproducibility
 net = trainnet(fTrain,thetaTrain,layers,"mse",options);
 ```
 
-![figure_0.png](FNO_README_media/figure_0.png)
+![figure_1.png](FNO_README_media/figure_1.png)
 # Test the Model and Visualize Results
 ```matlab
 tGridTest = repmat(t, [numel(idxTest) 1]);
@@ -167,7 +158,7 @@ mseTest = testnet(net,fTest,thetaTest,"mse")
 ```
 
 ```matlabTextOutput
-mseTest = 0.0741
+mseTest = 6.0968e-04
 ```
 
 
@@ -194,3 +185,9 @@ for i = 1:numTestPlots
     set(gca,FontSize=14,LineWidth=2.5)
 end
 ```
+
+![figure_2.png](FNO_README_media/figure_2.png)
+
+![figure_3.png](FNO_README_media/figure_3.png)
+
+![figure_4.png](FNO_README_media/figure_4.png)
