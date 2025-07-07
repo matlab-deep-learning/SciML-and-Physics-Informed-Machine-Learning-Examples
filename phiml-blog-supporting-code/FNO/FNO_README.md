@@ -25,7 +25,7 @@ generateData = 1;
 if generateData
     g = 9.81; r = 1; 
     omega0 = sqrt(g/r);
-    x0 = [0.5;0.5*sqrt(g/r)];
+    x0 = [0.5;0.5*omega0];
     numSamples = 2000;
     doPlot = 0;
     generatePendulumDataFNO(omega0,x0,numSamples,res,doPlot);

@@ -39,7 +39,7 @@ generateData = 1;
 if generateData
     g = 9.81; r = 1; 
     omega0 = sqrt(g/r);
-    x0 = [0;1.99*sqrt(9.81)];
+    x0 = [0;1.99*omega0];
     tSpan = linspace(0,20,400);
     noiseLevel = 0.01;
     doPlot = 0;
