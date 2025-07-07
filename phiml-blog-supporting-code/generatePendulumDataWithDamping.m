@@ -107,7 +107,7 @@ end
 % Save the data
 save(fullfile(dataDir, 'pendulum_with_damping_qp_dqdp_F.mat'), 'data');
 
-disp('Pendulum data written to pendulum_with_damping_qp_dqdp_F.mat \n');
+fprintf('Pendulum data written to pendulum_with_damping_qp_dqdp_F.mat \n');
 
 
 end

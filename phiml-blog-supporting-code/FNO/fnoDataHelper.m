@@ -8,7 +8,7 @@ function [fSamples, thetaSamples, grid] = fnoDataHelper(numModes, numSamples, om
     % doPlot: option to plot samples
 
     % Example usage
-    % f_samples = generate_forcing_functions(5, 2048, 512, 10);
+    % f_samples = fnoDataHelper(5,2000,1,[0;1],512,0);
     
     rng(0); % for reproducibility
 

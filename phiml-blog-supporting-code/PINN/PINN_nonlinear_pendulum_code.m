@@ -75,8 +75,7 @@ hold off
 tData = dlarray(tData',"CB");
 thetaData = dlarray(thetaData',"CB");
 t0 = dlarray(0,"CB");
-theta0 = dlarray(0,"CB");
-ds = arrayDatastore(tPhysics);
+theta0 = 0;
 %% Define the PINN Architecture
 % We represent the solution $\theta$ using a multilayer perceptron (MLP) that 
 % maps time $t$ to the pendulum angle $\theta$. The network architecture consists 
