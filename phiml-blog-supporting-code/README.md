@@ -1,7 +1,7 @@
 # Physics Informed Machine Learning Methods and Implementation supporting code
 This collection provides examples demonstrating a variety of Physics-Informed Machine Learning (PhiML) techniques, applied to a simple pendulum system. The examples provided here are discussed in detail in the accompanying blog post "Physics-Informed Machine Learning: Methods and Implementation". 
 
-![hippo](https://www.mathworks.com/help/examples/symbolic/win64/SimulateThePhysicsOfAPendulumsPeriodicSwingExample_10.gif)
+![animation of pendulum](https://www.mathworks.com/help/examples/symbolic/win64/SimulateThePhysicsOfAPendulumsPeriodicSwingExample_10.gif)
 
 The techniques described for the pendulum are categorized by their primary objectives:
 - **Modeling complex systems from data** 
@@ -21,6 +21,7 @@ Run startup.m to correctly set the path.
 ## MathWorks Products ([https://www.mathworks.com](https://www.mathworks.com/))
 Created and tested with MATLAB&reg; R2025a
 - [Deep Learning Toolbox&trade;](https://www.mathworks.com/products/deep-learning.html)
+- [Signal Processing Toolbox&trade;](https://www.mathworks.com/products/signal.html) (helper used in data generation)
 
 ## License
 The license is available in the [license.txt](license.txt) file in this Github repository.

@@ -14,7 +14,6 @@ The network is trained to minimize a composite loss function that includes:
 
 -  a data loss, which penalizes the difference between the network's predictions and the given measurements of $\theta$, and  
 -  a physics loss, which penalizes violations of the governing pendulum equation.  
-
 # Prepare Data for Training
 
 Load the data contained in  `pendulum_qp_dqdp.mat` if it already exists, or generate and save the data if not.
@@ -33,6 +32,13 @@ if generateData
     doPlot = 0;
     generatePendulumData(omega0,x0,tSpan,noiseLevel,doPlot);
 end
+```
+
+```matlabTextOutput
+Pendulum data written to pendulum_qp_dqdp.mat 
+```
+
+```matlab
 % Construct full path to the data file
 dataFile = fullfile(mainDir, 'pendulumData', 'pendulum_qp_dqdp.mat');
 % Read the data
@@ -75,7 +81,7 @@ set(gca,FontSize=14,LineWidth=2.5)
 hold off
 ```
 
-![figure_0.png](PINN_README_media/figure_0.png)
+![Data points](PINN_README_media/figure_0.png)
 
 Prepare data for training.
 
@@ -115,7 +121,7 @@ To train the PINN, we define a composite loss function that combines physics, da
 **Physics\-Informed Loss**
 
 
-The physics loss enforces the differential equation by penalizing deviations from the governing pendulum ODE. Functions like [`dllaplacian`](https://www.mathworks.com/help/releases/R2025a/deeplearning/ref/dlarray.dllaplacian.html?searchPort=60735) and [`dljacobian`](https://www.mathworks.com/help/deeplearning/ref/dlarray.dljacobian.html) make it simple to define derivative terms appearing in ordinary and partial differential equations for use in a PINN. 
+The physics loss enforces the differential equation by penalizing deviations from the governing pendulum ODE. Functions like [`dllaplacian`](https://www.mathworks.com/help/releases/R2025a/deeplearning/ref/dlarray.dllaplacian.html) and [`dljacobian`](https://www.mathworks.com/help/deeplearning/ref/dlarray.dljacobian.html) make it simple to define derivative terms appearing in ordinary and partial differential equations for use in a PINN. 
 
 ```matlab
 function loss = physicsInformedLoss(net,t)
@@ -187,17 +193,16 @@ Monitor the training progress. Plot the total loss.
 monitor = trainingProgressMonitor( ...
     Metrics="TrainingLoss", ...
     Info=["Iteration" "GradientsNorm" "StepNorm"], ...
-    XLabel="Iteration");
+    XLabel="Iteration", ...
+    Visible="off");
 ```
-
-![figure_1.png](PINN_README_media/figure_1.png)
 # Train the Network
 
 In order to train a PINN, we create a [custom training loop](https://www.mathworks.com/help/deeplearning/deep-learning-custom-training-loops.html). 
 
 ```matlab
 iteration = 0;
-
+monitor.Visible = "on";
 while iteration < maxIterations && ~monitor.Stop
     iteration = iteration + 1;
 
@@ -219,7 +224,7 @@ while iteration < maxIterations && ~monitor.Stop
 end
 ```
 
-![figure_2.png](PINN_README_media/figure_2.png)
+![Training progress](PINN_README_media/figure_1.png)
 # Visualize the Results
 
 Use the PINN to predict the value of $\theta$ at 100 evenly spaced points between $[0,10]$. 
@@ -252,4 +257,4 @@ set(gca,FontSize=14,LineWidth=2.5)
 legend();
 ```
 
-![figure_3.png](PINN_README_media/figure_3.png)
+![Solution plot](PINN_README_media/figure_2.png)

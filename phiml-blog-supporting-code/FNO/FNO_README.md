@@ -30,6 +30,13 @@ if generateData
     doPlot = 0;
     generatePendulumDataFNO(omega0,x0,numSamples,res,doPlot);
 end
+```
+
+```matlabTextOutput
+FNO data of resolution 512 written to fno_data_512.mat 
+```
+
+```matlab
 % Construct full path to the data file
 dataFile = fullfile(mainDir, 'pendulumData', sprintf('fno_data_%d.mat',res));
 % Read the data
@@ -67,7 +74,7 @@ for i = 1:numPlots
 end
 ```
 
-![figure_0.png](FNO_README_media/figure_0.png)
+![Training data](FNO_README_media/figure_0.png)
 # Prepare Training Data
 ```matlab
 numObservations = size(f,1);
@@ -112,9 +119,9 @@ ans = 1x3
 Network consists of multiple Fourier\-GeLU blocks connected in series.
 
 ```matlab
-numModes = 16;
-tWidth = 128;
-numBlocks = 8;
+numModes = 8;
+tWidth = 32;
+numBlocks = 4;
 
 fourierBlock = [
     fourierLayer(numModes,tWidth)
@@ -148,7 +155,7 @@ options = trainingOptions("adam", ...
 net = trainnet(fTrain,thetaTrain,layers,"mse",options);
 ```
 
-![figure_1.png](FNO_README_media/figure_1.png)
+![Training progress](FNO_README_media/figure_1.png)
 # Test the Model and Visualize Results
 ```matlab
 tGridTest = repmat(t, [numel(idxTest) 1]);
@@ -158,7 +165,7 @@ mseTest = testnet(net,fTest,thetaTest,"mse")
 ```
 
 ```matlabTextOutput
-mseTest = 6.0968e-04
+mseTest = 0.0079
 ```
 
 
@@ -169,13 +176,12 @@ Y = minibatchpredict(net, fTest);
 numTestPlots = 3;
 for i = 1:numTestPlots
     figure();
-    subplot(2,1,1);
     plot(t,fTest(i,:,1),LineWidth=2.5)
     title("Forcing Function")
     xlabel("$t$",Interpreter="latex")
     ylabel("$f(t)$",Interpreter="latex")
     set(gca,FontSize=14,LineWidth=2.5)
-    subplot(2,1,2)
+    figure();
     plot(t,Y(i,:),'b-',LineWidth=2.5,DisplayName='FNO'); hold on
     plot(t,thetaTest(i,:),'k--',LineWidth=2.5,DisplayName='True Solution'); hold off
     title("Angular Position")
@@ -186,8 +192,14 @@ for i = 1:numTestPlots
 end
 ```
 
-![figure_2.png](FNO_README_media/figure_2.png)
+![Test f 1](FNO_README_media/figure_2.png)
 
-![figure_3.png](FNO_README_media/figure_3.png)
+![Solution plot 1](FNO_README_media/figure_3.png)
 
-![figure_4.png](FNO_README_media/figure_4.png)
+![Test f 2](FNO_README_media/figure_4.png)
+
+![Solution plot 2](FNO_README_media/figure_5.png)
+
+![Test f 3](FNO_README_media/figure_6.png)
+
+![Solution plot 3](FNO_README_media/figure_7.png)

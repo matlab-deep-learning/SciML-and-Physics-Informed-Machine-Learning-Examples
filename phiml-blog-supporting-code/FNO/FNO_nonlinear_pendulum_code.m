@@ -20,7 +20,6 @@
 % advantageous for complex simulations involving partial differential equations 
 % (PDEs), where traditional solvers (e.g. finite element method) are computationally 
 % expensive.
-
 %% Generate or Import Data
 
 % Get the path to the main directory
@@ -64,6 +63,7 @@ for i = 1:numPlots
     title("Observation " + i + newline + "Forcing Function")
     xlabel("$t$",Interpreter='latex');
     ylabel("$f(t)$",Interpreter='latex');
+
     nexttile
     plot(t,theta(i,:));
     title("ODE Solution")
@@ -88,12 +88,15 @@ tGridTrain = repmat(t, [numel(idxTrain) 1]);
 tGridValidation = repmat(t, [numel(idxValidation) 1]);
 fTrain = cat(3,fTrain,tGridTrain);
 fValidation = cat(3, fValidation, tGridValidation);
+
+size(fTrain)
+size(fValidation)
 %% Define Neural Network Architecture
 % Network consists of multiple Fourier-GeLU blocks connected in series.
 
-numModes = 16;
-tWidth = 128;
-numBlocks = 8;
+numModes = 8;
+tWidth = 32;
+numBlocks = 4;
 
 fourierBlock = [
     fourierLayer(numModes,tWidth)
@@ -128,7 +131,7 @@ net = trainnet(fTrain,thetaTrain,layers,"mse",options);
 tGridTest = repmat(t, [numel(idxTest) 1]);
 
 fTest = cat(3,fTest,tGridTest);
-mseTest = testnet(net,fTest,thetaTest,"mse");
+mseTest = testnet(net,fTest,thetaTest,"mse")
 %% 
 % Visualize the predictions on the test set
 
@@ -136,13 +139,13 @@ Y = minibatchpredict(net, fTest);
 numTestPlots = 3;
 for i = 1:numTestPlots
     figure();
-    subplot(2,1,1);
+    subplot(1,2,1)
     plot(t,fTest(i,:,1),LineWidth=2.5)
     title("Forcing Function")
     xlabel("$t$",Interpreter="latex")
     ylabel("$f(t)$",Interpreter="latex")
     set(gca,FontSize=14,LineWidth=2.5)
-    subplot(2,1,2)
+    subplot(1,2,2)
     plot(t,Y(i,:),'b-',LineWidth=2.5,DisplayName='FNO'); hold on
     plot(t,thetaTest(i,:),'k--',LineWidth=2.5,DisplayName='True Solution'); hold off
     title("Angular Position")

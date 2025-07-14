@@ -1,6 +1,4 @@
 
-<a id="TMP_515f"></a>
-
 # Hamiltonian Neural Network for Nonlinear Pendulum
 
 This example demonstrates how to use a **Hamiltonian Neural Network (HNN)** to learn the dynamics of a nonlinear pendulum from noisy observational data. HNNs incorporate physical structure by learning the system's Hamiltonian and using Hamilton's equations to compute the time evolution of the state.
@@ -21,11 +19,10 @@ The input to the HNN is the state vector $[q,p]=[\theta ,\dot{\theta} ]$. The ne
 
 to ensure the learned Hamiltonian produces physically consistent dynamics. Once the network is trained, predictions are made by solving Hamilton's equations 
 
- $ \frac{dq}{dt}=\frac{\partial \mathcal{H}}{\partial p}, $  $ \frac{dp}{dt}=-\frac{\partial \mathcal{H}}{\partial p} $  
+ $$ \frac{dq}{dt}=\frac{\partial \mathcal{H}}{\partial p}, \quad \frac{dp}{dt}=-\frac{\partial \mathcal{H}}{\partial p} $$  
 
 using the learned Hamiltonian. 
 
-<a id="TMP_42e5"></a>
 
 # Prepare Data for Training
 
@@ -48,7 +45,7 @@ end
 ```
 
 ```matlabTextOutput
-Pendulum data written to pendulum_qp_dqdp.mat
+Pendulum data written to pendulum_qp_dqdp.mat 
 ```
 
 ```matlab
@@ -90,7 +87,6 @@ inputds = arrayDatastore(inputs, IterationDimension=1);
 targetds = arrayDatastore(targets, IterationDimension=1);
 ds = combine(inputds, targetds);
 ```
-<a id="TMP_5a22"></a>
 
 # Build the HNN Architecture
 
@@ -120,7 +116,6 @@ rng(0); % for reproducibility
 net = dlnetwork(layers);
 net = dlupdate(@double, net);
 ```
-<a id="TMP_77ff"></a>
 
 # Specify Training Options
 
@@ -161,23 +156,19 @@ Create a monitor to track the training progress.
 monitor = trainingProgressMonitor( ...
     Metrics="TrainingLoss", ...
     XLabel="Iteration", ...
-    Info="Epoch");
-```
-
-![figure_0.png](HNN_README_media/figure_0.png)
-
-```matlab
+    Info="Epoch", ...
+    Visible="off");
 yscale(monitor,"TrainingLoss","log");
 ```
-<a id="TMP_1703"></a>
 
 # Train the Network 
 
-We use a custom training loop. For more information on custom training loops, see [https://www.mathworks.com/help/deeplearning/custom\-training\-loops.html.](https://www.mathworks.com/help/deeplearning/custom-training-loops.html.) 
+We use a custom training loop. For more information on custom training loops, see [Custom Training Loops using Automatic Differentiation](https://www.mathworks.com/help/deeplearning/custom-training-loops.html).
 
 ```matlab
 iteration = 0;
 epoch = 0;
+monitor.Visible = "on";
 monitor.Status = "Running";
 tol = 1e-2;
 loss = 1000;
@@ -210,8 +201,7 @@ else
 end
 ```
 
-![figure_1.png](HNN_README_media/figure_1.png)
-<a id="TMP_63f0"></a>
+![Training progress](HNN_README_media/figure_0.png)
 
 # Predict the Pendulum Trajectory
 
@@ -228,7 +218,6 @@ odeFcn = @(ts,xs) dlfeval(accModel, net, xs);
 [~, qp] = ode45(odeFcn, tspan, x0);
 qp = qp'; % Transpose to return to (2)x(N)
 ```
-<a id="TMP_549d"></a>
 
 # Visualize the Results
 ```matlab
@@ -244,7 +233,7 @@ set(gca,FontSize=14,LineWidth=2.5)
 hold off
 ```
 
-![figure_2.png](HNN_README_media/figure_2.png)
+![Solution trajectory](HNN_README_media/figure_1.png)
 
 ```matlab
 % Plot time vs angular position
@@ -266,8 +255,7 @@ set(gca,FontSize=14,LineWidth=2.5)
 legend();
 ```
 
-![figure_3.png](HNN_README_media/figure_3.png)
-<a id="TMP_3357"></a>
+![Solution plots](HNN_README_media/figure_2.png)
 
 ## Helper Functions
 ```matlab

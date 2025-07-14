@@ -171,7 +171,7 @@ opts = trainingOptions("adam", ...
 nODEnet = trainnet(Xtrain, Ytrain, nODEnet, "l2loss", opts);
 ```
 
-![figure_0.png](UDE_SINDy_README_media/figure_0.png)
+![Training progress](UDE_SINDy_README_media/figure_0.png)
 # Predict the Pendulum Trajectory
 
 Used the trained network to predict $[\theta ,\dot{\theta} ]$ from an initial condition. 
@@ -207,7 +207,7 @@ xlabel('Time (s)',Interpreter='latex');
 set(gca,FontSize=14,LineWidth=2.5)
 ```
 
-![figure_1.png](UDE_SINDy_README_media/figure_1.png)
+![UDE solution plots](UDE_SINDy_README_media/figure_1.png)
 
 Plot the phase\-space: $\theta$ vs $\dot{\theta}$. 
 
@@ -222,7 +222,7 @@ set(gca,FontSize=14,LineWidth=2.5)
 title('Phase-Space: $\theta$ vs. $\dot{\theta}$',Interpreter='latex');
 ```
 
-![figure_2.png](UDE_SINDy_README_media/figure_2.png)
+![UDE solution trajectory](UDE_SINDy_README_media/figure_2.png)
 # Identify equations for the universal approximator
 
 Extract $h$ from `neuralODE`.
@@ -329,7 +329,7 @@ legend()
 hold off
 ```
 
-![figure_3.png](UDE_SINDy_README_media/figure_3.png)
+![SINDy angular position plot](UDE_SINDy_README_media/figure_3.png)
 
 ```matlab
 scatter(tTrain,Y(:,2),'ko',DisplayName='Noisy Data',LineWidth=1); hold on
@@ -344,4 +344,4 @@ legend()
 hold off
 ```
 
-![figure_4.png](UDE_SINDy_README_media/figure_4.png)
+![SINDy angular velocity plot](UDE_SINDy_README_media/figure_4.png)

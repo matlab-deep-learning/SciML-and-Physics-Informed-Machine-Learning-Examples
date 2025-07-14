@@ -12,7 +12,7 @@ The true dynamics of the nonlinear pendulum are governed by the second\-order di
 
 We rewrite this as a first\-order system:
 
- $$ \frac{d}{\textrm{dt}}\left\lbrack \begin{array}{c} \theta \\ \dot{\theta}  \end{array}\right\rbrack =\mathit{\mathbf{f}}\left(\theta ,\dot{\theta} \right) $$ 
+ $$ \frac{d}{dt}\lbrack \theta, \dot{\theta}\rbrack^T =\mathit{\mathbf{f}}\left(\theta ,\dot{\theta} \right) $$ 
 
 In the Neural ODE framework, the unknown dynamics $\mathbf{f}$ are approximated using a neural network, which is trained to fit the observed trajectories. 
 
@@ -140,7 +140,7 @@ Train the model to fit the noisy pendulum data.
 nODEnet = trainnet(Xtrain, Ytrain, nODEnet, "l2loss", opts);
 ```
 
-![figure_0.png](NeuralODE_nonlinear_pendulum_media/figure_0.png)
+![Training progress](NeuralODE_nonlinear_pendulum_media/figure_0.png)
 # Predict the Pendulum Trajectory
 
 Used the trained network to predict the pendulum's trajectory. 
@@ -176,7 +176,7 @@ xlabel('Time (s)',Interpreter='latex');
 set(gca,FontSize=14,LineWidth=2.5)
 ```
 
-![figure_1.png](NeuralODE_nonlinear_pendulum_media/figure_1.png)
+![Solution plots](NeuralODE_nonlinear_pendulum_media/figure_1.png)
 
 Plot the phase\-space: $\theta$ vs $\dot{\theta}$. 
 
@@ -193,4 +193,4 @@ set(gca,FontSize=14,LineWidth=2.5)
 title('Phase-Space: $\theta$ vs. $\dot{\theta}$',Interpreter='latex');
 ```
 
-![figure_2.png](NeuralODE_nonlinear_pendulum_media/figure_2.png)
+![Solution trajectory](NeuralODE_nonlinear_pendulum_media/figure_2.png)

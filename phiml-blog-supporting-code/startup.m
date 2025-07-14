@@ -5,7 +5,11 @@ projectRoot = fileparts(mfilename('fullpath'));
 addpath(projectRoot);
 
 % Add all subfolders to the path
-addpath(genpath(projectRoot));
+addpath(fullfile(projectRoot, 'HNN'));
+addpath(fullfile(projectRoot, 'PINN'));
+addpath(fullfile(projectRoot, 'NeuralODE'));
+addpath(fullfile(projectRoot, 'FNO'));
+addpath(fullfile(projectRoot, 'UDE_SINDy'));
 
 % Display a message
 disp(['Project path set. Root: ', projectRoot]);

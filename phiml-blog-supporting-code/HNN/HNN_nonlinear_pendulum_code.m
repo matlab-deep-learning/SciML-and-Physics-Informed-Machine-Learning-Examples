@@ -30,7 +30,6 @@
 % = -\frac{\partial \mathcal{H}}{\partial p}$$  
 % 
 % using the learned Hamiltonian. 
-
 %% Prepare Data for Training
 % Load the data contained in |pendulum_qp_dqdp.mat| if it already exists, or 
 % generate and save the data if not. 
@@ -140,15 +139,17 @@ accfun = dlaccelerate(@modelLoss);
 monitor = trainingProgressMonitor( ...
     Metrics="TrainingLoss", ...
     XLabel="Iteration", ...
-    Info="Epoch");
+    Info="Epoch", ...
+    Visible="off");
 yscale(monitor,"TrainingLoss","log");
 %% Train the Network 
 % We use a custom training loop. For more information on custom training loops, 
-% see <https://www.mathworks.com/help/deeplearning/custom-training-loops.html. 
-% https://www.mathworks.com/help/deeplearning/custom-training-loops.html.> 
+% see <https://www.mathworks.com/help/deeplearning/custom-training-loops.html 
+% Custom Training Loops using Automatic Differentiation>.
 
 iteration = 0;
 epoch = 0;
+monitor.Visible = "on";
 monitor.Status = "Running";
 tol = 1e-2;
 loss = 1000;

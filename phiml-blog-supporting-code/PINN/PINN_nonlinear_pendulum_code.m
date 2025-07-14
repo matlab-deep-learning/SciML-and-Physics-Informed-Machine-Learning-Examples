@@ -16,7 +16,6 @@
 % * a data loss, which penalizes the difference between the network's predictions 
 % and the given measurements of $\theta$, and 
 % * a physics loss, which penalizes violations of the governing pendulum equation. 
-
 %% Prepare Data for Training
 % Load the data contained in |pendulum_qp_dqdp.mat| if it already exists, or 
 % generate and save the data if not.
@@ -172,13 +171,14 @@ stepTolerance = 1e-6;
 monitor = trainingProgressMonitor( ...
     Metrics="TrainingLoss", ...
     Info=["Iteration" "GradientsNorm" "StepNorm"], ...
-    XLabel="Iteration");
+    XLabel="Iteration", ...
+    Visible="off");
 %% Train the Network
 % In order to train a PINN, we create a <https://www.mathworks.com/help/deeplearning/deep-learning-custom-training-loops.html 
 % custom training loop>. 
 
 iteration = 0;
-
+monitor.Visible = "on";
 while iteration < maxIterations && ~monitor.Stop
     iteration = iteration + 1;
 
@@ -204,7 +204,6 @@ end
 
 tTest = linspace(0,10,100)';
 thetaPred = predict(pinnNet,tTest);
-figure;
 plot(tTest, thetaPred, 'b-', DisplayName='PINN prediction', LineWidth = 3, Color='b');
 hold on
 %% 
