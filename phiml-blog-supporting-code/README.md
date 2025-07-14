@@ -1,4 +1,4 @@
-# Physics Informed Machine Learning Methods and Implementation supporting code
+# Physics-Informed Machine Learning Methods and Implementation supporting code
 This collection provides examples demonstrating a variety of Physics-Informed Machine Learning (PhiML) techniques, applied to a simple pendulum system. The examples provided here are discussed in detail in the accompanying blog post "Physics-Informed Machine Learning: Methods and Implementation". 
 
 ![animation of pendulum](https://www.mathworks.com/help/examples/symbolic/win64/SimulateThePhysicsOfAPendulumsPeriodicSwingExample_10.gif)
