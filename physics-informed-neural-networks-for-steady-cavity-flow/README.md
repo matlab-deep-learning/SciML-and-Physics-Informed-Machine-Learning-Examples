@@ -73,7 +73,7 @@ net = dlupdate(@double, net);
 % Visually inspect the network.
 analyzeNetwork(net)
 ```
-![figure_2.png](./images/figure_2.png)
+![figure_0.png](./images/figure_0.png)
 
 ## Create training input
 ```matlab
@@ -137,7 +137,7 @@ for iteration = 1:maxIterations
 end
 ```
 
-![figure_0.png](./images/figure_0.png)
+![figure_1.png](./images/figure_1.png)
 ## Plot predictions
 ```matlab
 % Create test set using meshgrid.
@@ -189,7 +189,7 @@ axis equal
 title('v')
 ```
 
-![figure_1.png](./images/figure_1.png)
+![figure_2.png](./images/figure_2.png)
 ## Loss function and helper functions
 ```matlab
 function [loss, grads, lossEqnX, lossEqnY, lossBC] = pinnsLossFunction(net, xyEquation, xyBoundary, zeroVector, uvBoundary, Re)
