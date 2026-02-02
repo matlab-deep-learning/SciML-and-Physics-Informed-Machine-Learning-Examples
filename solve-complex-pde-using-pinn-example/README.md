@@ -24,7 +24,7 @@ This example uses:
 
 # License
 
-The license is available in the [license.txt](https://github.com/matlab-deep-learning/SciML-and-Physics-Informed-Machine-Learning-Examples/blob/main/universal-differential-equations/license.txt) file in this GitHub repository.
+The license is available in the [license.txt](../license.txt) file in this GitHub repository.
 
 # Community Support
 
