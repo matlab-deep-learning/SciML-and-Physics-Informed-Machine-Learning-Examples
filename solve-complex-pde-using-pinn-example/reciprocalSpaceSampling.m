@@ -2,6 +2,7 @@ function [kPts,bzBoundaryPosition] = reciprocalSpaceSampling(crystalStructure)
 % 1. Randomly sample along high-symmetry boundary of IBZ.
 % 2. Randomly sample inside IBZ.
 % 3. Randomly shift either into adjacent higher-order Brillouin zones by adding integer multiples of reciprocal lattice vectors - this is how to get higher-energy states.
+% Copyright 2026 The MathWorks, Inc.
 
 % High symmetry points
 Gamma = [0 0]; % center of the BZ
@@ -42,4 +43,5 @@ kPts = kPts + randi([-1,1],N,1)*crystalStructure.b1 + randi([-1,1],N,1)*crystalS
 
 %% Save the boundary position of edge points - this is used to plot the band structure.
 bzBoundaryPosition = [randGX;1+randXM;2+sqrt(2)*randMG];
+
 end
