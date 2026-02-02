@@ -1,5 +1,5 @@
 function plotWaveFunction(k,netU,crystalStructure)
-
+% Copyright 2026 The MathWorks, Inc.
 nr = 100; % number of points per real space dimension
 x = 2 * linspace(-.5,.5,nr);
 y = 2 * linspace(-.5,.5,nr);
@@ -28,5 +28,6 @@ cmin = 0;
 cmax = 2 / areaUnitCell;
 clim([cmin,cmax])
 colorbar
+
 
 end
