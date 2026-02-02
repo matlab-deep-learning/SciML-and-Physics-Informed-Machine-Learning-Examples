@@ -2,7 +2,7 @@
 
 This example shows how to train a physics\-informed neural network to simulate the behavior of electrons inside a simplified 2\-D condensed matter system by solving the Schrödinger equation, a complex\-valued partial differential equation.
 
-The code in this example is based on work by Hsu et al \[1,2\]. Periodic boundary conditions are enforced using techniques developed by Shavinger et al \[3\].
+The code in this example is based on work by Hsu et al \[1,2\]. Periodic boundary conditions are enforced using techniques developed by Shaviner et al \[3\].
 
 Example (web view):
 - [SolveComplexPDEUsingPINNExample.md](./SolveComplexPDEUsingPINNExample.md)
