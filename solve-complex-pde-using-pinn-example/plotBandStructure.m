@@ -1,4 +1,5 @@
 function plotBandStructure(kPts,E,bzBoundaryPosition)
+% Copyright 2026 The MathWorks, Inc.
 eGroundTruth = freeEnergy(kPts);
 plot(bzBoundaryPosition,E(1:length(bzBoundaryPosition),:),'.')
 hold on
@@ -12,4 +13,5 @@ end
 
 function E = freeEnergy(k)
 E = 0.5 * (k(:,1).^2+k(:,2).^2);
+
 end
