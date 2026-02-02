@@ -36,7 +36,7 @@ Explore the following examples on PINNs.
 * [Inverse Problems using PINNs](./inverse-problems-using-physics-informed-neural-networks/)
 * [Solve PDE Using Physics-Informed Neural Network](https://uk.mathworks.com/help/deeplearning/ug/solve-partial-differential-equations-with-lbfgs-method-and-deep-learning.html)
 * [Solve Poisson Equation on Unit Disk Using Physics-Informed Neural Networks](https://uk.mathworks.com/help/pde/ug/solve-poisson-equation-on-unit-disk-using-pinn.html)
-* [Solve Complex Partial Differential Equation Using Physics Informed Neural Network](./solve-complex-pde-using-pinn-example)
+* [Solve Complex Partial Differential Equation Using Physics-Informed Neural Network](./solve-complex-pde-using-pinn-example)
 
 The following video content for PINNs is also available:
 
