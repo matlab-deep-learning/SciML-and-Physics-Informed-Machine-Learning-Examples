@@ -1,4 +1,4 @@
-%[text] # Solve Complex Partial Differential Equation Using Physics-Informed Neural Network
+%[text] # Simulate Condensed Matter System Using Complex-Valued Physics-Informed Neural Network
 %[text] This example shows how to train a physics-informed neural network to simulate the behavior of electrons inside a simplified 2-D condensed matter system.
 %[text] Physical observables, such as temperature, angular momentum, or position, are real numbers. However, in quantum mechanics, the underlying quantity describing the state of a physical system, known as the wave function, is complex-valued. You can derive the real-valued physical observables from the complex-valued wave function. To model the behavior of the wave function, and therefore the behavior of the physical observables, in a quantum mechanical system, solve a complex-valued partial differential equation known as the Schrödinger equation.
 %[text] The quantum mechanical state of electrons in crystals can be described in terms of this complex partial differential equation:
