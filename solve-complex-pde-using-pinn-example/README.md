@@ -1,4 +1,4 @@
-# Physics-Informed Neural Networks for Complex-Valued Condensed Matter Systems
+# Simulate Condensed Matter System Using Complex-Valued Physics-Informed Neural Network
 
 This example shows how to train a physics\-informed neural network to simulate the behavior of electrons inside a simplified 2\-D condensed matter system by solving the Schrödinger equation, a complex\-valued partial differential equation.
 
