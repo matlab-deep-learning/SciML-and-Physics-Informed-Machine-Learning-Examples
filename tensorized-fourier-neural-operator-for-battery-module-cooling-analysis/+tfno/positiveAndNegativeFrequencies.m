@@ -1,6 +1,6 @@
-function [pos,neg] = iPositiveAndNegativeFrequencies(N)
-%IPOSITIVENEGATIVEFREQUENCIES - Indices for positive and negative FFT frequencies.
-%  [pos,neg] = IPOSITIVENEGATIVEFREQUENCIES(N) returns the indices into the 
+function [pos,neg] = positiveAndNegativeFrequencies(N)
+%POSITIVENEGATIVEFREQUENCIES - Indices for positive and negative FFT frequencies.
+%  [pos,neg] = POSITIVENEGATIVEFREQUENCIES(N) returns the indices into the 
 %  positive and negative frequencies of a Fourier transform as computed by fft 
 %  on a real valued input with N entries.
 %

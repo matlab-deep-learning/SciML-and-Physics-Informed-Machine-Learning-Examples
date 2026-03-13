@@ -25,7 +25,7 @@ function L2 = l2Norm(X, params)
 %     B=2; C=1; S1=64; S2=64;
 %     X = randn(B,C,S1,S2);
 %     L2 = l2Norm(X);
-%
+
 % Copyright 2026 The MathWorks, Inc.
 
     arguments

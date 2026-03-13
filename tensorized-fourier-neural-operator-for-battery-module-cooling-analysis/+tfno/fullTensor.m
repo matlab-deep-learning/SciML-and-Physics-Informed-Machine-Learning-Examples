@@ -21,6 +21,6 @@ function Afull = fullTensor(core, factors)
 
     Afull = core;
     for mode = 1:ndims(Afull)
-        Afull = contractFactor(Afull, factors{mode}, mode);
+        Afull = tfno.contractFactor(Afull, factors{mode}, mode);
     end
 end

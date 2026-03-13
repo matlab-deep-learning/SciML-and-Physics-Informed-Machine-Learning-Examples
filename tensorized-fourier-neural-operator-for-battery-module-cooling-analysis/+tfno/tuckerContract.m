@@ -69,7 +69,7 @@ function Y = tuckerContract(X, core, factors)
         mode = 2 + k;
         % Account for X being smaller than the factor or core
         factor = USpatial{k}(1:spatialSizes(k), :);
-        core = contractFactor(core, factor, mode);
+        core = tfno.contractFactor(core, factor, mode);
     end
 
     % 3) Pagewise rank mixing (vectorized over batch and all spatial locations)

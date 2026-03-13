@@ -4,18 +4,18 @@ function net = tfno3d(numModes, latentChannelSize, args)
 %  the specified number of Fourier modes and latent channel size.
 %
 %  Supported Name-Value pairs are:
-%    "NumBlocks"              Number of FNO blocks (default: 1)
-%    "ExpandNet"              Whether to expand network layers (default: true)
-%    "LiftingChannelRatio"    Ratio for lifting channels (default: 2)
-%    "ProjectionChannelRatio" Ratio for projection channels (default: 2)
-%    "InChannels"             Number of input channels (default: 1)
-%    "OutChannels"            Number of output channels (default: 1)
-%    "SpatialLimits"          Spatial domain limits [min1, max1; min2, max2; min3, max3] (default: [0, 1; 0, 1; 0, 1])
-%    "SpectralRank"           Rank for spectral convolution (0-1) (default: 1)
-%    "LinearFNOSkip"          Enable linear skip connection (default: true)
-%    "ChannelMLPSkip"         Enable channel MLP skip connection (default: true)
-%    "UseSpectralConvBias"    Use bias in spectral convolution (default: true)
-%    "FuseSpectralConv"       Directly contract spectral activations with tensorized weights (default: true)
+%    NumBlocks              - Number of FNO blocks (default: 1)
+%    ExpandNet              - Whether to expand network layers (default: true)
+%    LiftingChannelRatio    - Ratio for lifting channels (default: 2)
+%    ProjectionChannelRatio - Ratio for projection channels (default: 2)
+%    InChannels             - Number of input channels (default: 1)
+%    OutChannels            - Number of output channels (default: 1)
+%    SpatialLimits          - Spatial domain limits [min1, max1; min2, max2; min3, max3] (default: [0, 1; 0, 1; 0, 1])
+%    SpectralRank           - Rank for spectral convolution (0-1) (default: 1)
+%    LinearFNOSkip          - Enable linear skip connection (default: true)
+%    ChannelMLPSkip         - Enable channel MLP skip connection (default: true)
+%    UseSpectralConvBias    - Use bias in spectral convolution (default: true)
+%    FuseSpectralConv       - Directly contract spectral activations with tensorized weights (default: true)
 %
 % The network architecture consists of:
 %   1. Input layer with spatial embedding
@@ -24,7 +24,7 @@ function net = tfno3d(numModes, latentChannelSize, args)
 %   4. Projection layers to map back to output space
 %
 % Example:
-%   net = tfno1d([16, 16, 16], 32, NumBlocks=4, InChannels=2, OutChannels=1);
+%   net = tfno3d([16, 16, 16], 32, NumBlocks=4, InChannels=2, OutChannels=1);
 
 % Copyright 2026 The MathWorks, Inc.
 
@@ -47,14 +47,13 @@ function net = tfno3d(numModes, latentChannelSize, args)
 
     liftingChannels = args.LiftingChannelRatio * latentChannelSize;
     
-    layers = [inputLayer([NaN latentChannelSize latentChannelSize latentChannelSize args.InChannels],"BSSSC", Name="input"), ...
-        spatialEmbeddingLayer3D(args.SpatialLimits, Name="positionEmbdding"), ...
-        depthConcatenationLayer(2, Name="concat"), ...
+    layers = [image3dInputLayer([latentChannelSize latentChannelSize latentChannelSize args.InChannels], Name="input"), ...
         convolution3dLayer(1, liftingChannels, Name="lifting1"), ...
+        geluLayer(Name="gelu1"), ...
         convolution3dLayer(1, latentChannelSize, Name="lifting2")];
 
     for i = 1:args.NumBlocks
-        layers(end+1) = fnoBlock3D(numModes, latentChannelSize, ...
+        layers(end+1) = tfno.fnoBlock3D(numModes, latentChannelSize, ...
             Rank=args.SpectralRank, ...
             LinearFNOSkip=args.LinearFNOSkip, ...
             ChannelMLPSkip=args.ChannelMLPSkip, ...
@@ -66,11 +65,11 @@ function net = tfno3d(numModes, latentChannelSize, args)
     
     layers = [layers, ...
         convolution3dLayer(1, projectionChannels, Name="proj1"), ... 
-        geluLayer(Name="gelu1"), ...
-        convolution3dLayer(1, args.OutChannels, Name="proj2")];    
+        geluLayer(Name="gelu2"), ...
+        convolution3dLayer(1, args.OutChannels, Name="proj2"), ...
+        inverseNormalizationLayer];    
     net = dlnetwork;
     net = addLayers(net, layers);
-    net = connectLayers(net,"input","concat/in2");
     
     if args.ExpandNet
         net = expandLayers(net);

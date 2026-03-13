@@ -43,7 +43,7 @@ function H1 = h1Norm(X, params)
 %     B=2; C=1; S1=64; S2=64;
 %     X = randn(B,C,S1,S2);
 %     H1 = h1Norm(X);
-%
+
 % Copyright 2026 The MathWorks, Inc.
 
     arguments
@@ -70,19 +70,19 @@ function H1 = h1Norm(X, params)
         params.Spacings = ones(1, D);
     else
         if numel(params.Spacings) ~= D
-            error('params.Spacings must have length equal to the number of spatial dimensions (D).');
+            error('Spacings must have length equal to the number of spatial dimensions (D).');
         end
     end
 
     if isscalar(params.Periodic)
         params.Periodic = repmat(params.Periodic, 1, D);
     elseif numel(params.Periodic) ~= D
-        error('params.Periodic must be scalar or 1xD logical.');
+        error('Periodic must be scalar or 1xD logical.');
     end
 
     % Initialize H1 as the L2 error,
     if params.IncludeL2
-        H1 = l2Norm(X, Reduction="none", SquareRoot=false, Normalize=false);
+        H1 = lossFunctions.l2Norm(X, Reduction="none", SquareRoot=false, Normalize=false);
     else
         H1 = zeros(B, 1, 'like', X);
     end

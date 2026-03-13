@@ -25,6 +25,10 @@ function loss = relativeH1Loss(pred, gt, params)
 %                    dimensions are periodic. The default value
 %                    is true for all dimensions.
 %
+%     Epsilon      - Small constant to add to denominator to avoid division
+%                    by zero, in single precision.
+%                    The default value is 2e-16.
+%
 %   The relative H1 loss is defined as:
 %     loss = ||pred - gt||_{H^1} / ||gt||_{H^1}
 %   where the H1 norm measures both function values and their gradients.
@@ -44,7 +48,7 @@ function loss = relativeH1Loss(pred, gt, params)
 %     pred = dlarray(randn(B,C,S1,S2));
 %     gt = dlarray(randn(B,C,S1,S2));
 %     loss = relativeH1Loss(pred, gt);
-%
+
 % Copyright 2026 The MathWorks, Inc.
         
     arguments
@@ -55,6 +59,7 @@ function loss = relativeH1Loss(pred, gt, params)
         params.SquareRoot (1,1) logical = false
         params.Reduction (1,1) string {mustBeMember(params.Reduction, {'mean', 'sum', 'none'})} = "mean"
         params.Periodic (1,:) logical = true
+        params.Epsilon (1, 1) single = 2e-16
     end
 
     if ~isequal(size(pred), size(gt))
@@ -66,33 +71,33 @@ function loss = relativeH1Loss(pred, gt, params)
     elseif isscalar(params.SpatialSizes)
         params.SpatialSizes = repmat(params.SpatialSizes, 1, ndims(gt) - 2);
     elseif numel(params.SpatialSizes) ~= ndims(gt) - 2
-        error('params.SpatialSizes must have length equal to the number of spatial dimensions.');
+        error('SpatialSizes must have length equal to the number of spatial dimensions.');
     end
 
     % Ensure that dimension order is [B, C, S1, S2, ... Sn].
-    pred = permuteDimFirst(pred, "C");
-    gt = permuteDimFirst(gt, "C");
-    pred = permuteDimFirst(pred, "B");
-    gt = permuteDimFirst(gt, "B");
+    pred = lossFunctions.permuteDimFirst(pred, "C");
+    gt = lossFunctions.permuteDimFirst(gt, "C");
+    pred = lossFunctions.permuteDimFirst(pred, "B");
+    gt = lossFunctions.permuteDimFirst(gt, "B");
 
     sz = size(pred);
     quadrature = params.SpatialSizes./sz(3:end);
 
-    num = h1Norm(gt - pred, ...
+    num = lossFunctions.h1Norm(gt - pred, ...
         Spacings=quadrature, ...
         Reduction='none', ...
         Normalize=params.Normalize, ...
         SquareRoot=params.SquareRoot, ...
         Periodic=params.Periodic);
 
-    den = h1Norm(gt, ...
+    den = lossFunctions.h1Norm(gt, ...
         Spacings=quadrature, ...
         Reduction='none', ...
         Normalize=params.Normalize, ...
         SquareRoot=params.SquareRoot, ...
         Periodic=params.Periodic);
 
-     loss = num./(den + eps);
+     loss = num./(den + params.Epsilon);
    
      switch params.Reduction
          case "mean"

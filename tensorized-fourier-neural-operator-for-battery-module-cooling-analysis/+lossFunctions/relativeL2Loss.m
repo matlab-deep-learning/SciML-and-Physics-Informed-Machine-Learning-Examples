@@ -17,6 +17,10 @@ function [loss, errL2, gtL2] = relativeL2Loss(pred, gt, params)
 %     Normalize  - If true, normalizes the L2 norm.
 %                  The default value is false.
 %
+%     Epsilon      - Small constant to add to denominator to avoid division
+%                    by zero, in single precision.
+%                    The default value is 2e-16.
+%
 %   The relative L2 loss is defined as:
 %     loss = ||pred - gt||_{L^2} / ||gt||_{L^2}
 %   which is calculated per sample in the batch and then reduced.
@@ -35,7 +39,7 @@ function [loss, errL2, gtL2] = relativeL2Loss(pred, gt, params)
 %     pred = dlarray(randn(10, 5));
 %     gt = dlarray(randn(10, 5));
 %     loss = relativeL2Loss(pred, gt);
-%
+
 % Copyright 2026 The MathWorks, Inc.
 
     arguments
@@ -44,10 +48,11 @@ function [loss, errL2, gtL2] = relativeL2Loss(pred, gt, params)
         params.Reduction (1,1) string {mustBeMember(params.Reduction, {'mean', 'sum', 'none'})} = "mean"
         params.SquareRoot (1,1) logical = false
         params.Normalize (1,1) logical = false
+        params.Epsilon (1, 1) single = 2e-16
     end
 
-    pred = permuteDimFirst(pred, "B");
-    gt = permuteDimFirst(gt, "B");
+    pred = lossFunctions.permuteDimFirst(pred, "B");
+    gt = lossFunctions.permuteDimFirst(gt, "B");
 
     if ~isequal(size(pred), size(gt))
         error('pred and gt must have identical size.');
@@ -55,16 +60,16 @@ function [loss, errL2, gtL2] = relativeL2Loss(pred, gt, params)
 
     err = gt - pred;
 
-    errL2 = l2Norm(err, ...
+    errL2 = lossFunctions.l2Norm(err, ...
         Normalize=params.Normalize, ...
         Reduction='none', ...
         SquareRoot=params.SquareRoot);
-    gtL2 = l2Norm(gt, ...
+    gtL2 = lossFunctions.l2Norm(gt, ...
         Normalize=params.Normalize, ...
         Reduction='none', ...
         SquareRoot=params.SquareRoot);
 
-    loss = errL2./(gtL2 + eps);
+    loss = errL2./(gtL2 + params.Epsilon);
    
      switch params.Reduction
          case "mean"

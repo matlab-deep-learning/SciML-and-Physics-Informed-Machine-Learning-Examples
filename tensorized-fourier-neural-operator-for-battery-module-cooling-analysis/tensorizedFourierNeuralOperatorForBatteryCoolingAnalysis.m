@@ -12,7 +12,7 @@
 %[text] - **Improved generalization:** On some problems, TFNOs can improve accuracy, and across many problems and compression ratios, there is negligible accuracy loss compared to FNOs \[[2](internal:M_01fc)\]. \
 %[text] Compression via tensorization may be applied to any large weight tensors, including those in spectral convolution or convolution layers. The compression method \[[2](internal:M_01fc)\] applies to any FNO, and shows the most benefit on high-dimensional problems like the 3D problem in this example.
 %[text] #### Example Outline
-%[text] The sections are outlined below. The first section is the same as from the [FNO](https://github.com/matlab-deep-learning/SciML-and-Physics-Informed-Machine-Learning-Examples/tree/main/battery-module-cooling-analysis-with-fourier-neural-operator) example. Since generating the simulation data takes a long time, an option is provided to download pregenerated data by setting `loadSimulationData = true`.
+%[text] The sections are outlined below. The first two sections are the same as from the [FNO](https://github.com/matlab-deep-learning/SciML-and-Physics-Informed-Machine-Learning-Examples/tree/main/battery-module-cooling-analysis-with-fourier-neural-operator) example.
 %[text] 1. **Specify Battery Module Geometry and Generate Simulation Data:** Define the 3D shape of the battery and run simulations to produce temperature data over varying material and physical properties using the [Partial Differential Equation Toolbox](https://mathworks.com/products/pde.html).
 %[text] 2. **Prepare Data for Training:** Discretize the simulation data to a regular grid of points, like those that `meshgrid` and `ndgrid` create, via interpolation.
 %[text] 3. **Compress FNO using Tensorization:** Apply tensorization to shrink the FNO model, creating a TFNO.
@@ -20,203 +20,237 @@
 %[text] 5. **Test the Model:** Compare the TFNO's predictions against numerical simulation results from section 2 and assess the model's latency.
 %[text] 6. **Visualize the Model Predictions:** Interpolate the model's outputs onto the battery geometry and compare against numerical simulations.
 %[text] 7. **Conclusion:** Summary of results. \
+%[text] The data generation and training steps in this example take a long time to run. By default, this example skips the data generation and network training and instead downloads the generated data and a trained network. To perform data generation, set the `doGeneration` variable to `true`.
+doGeneration = false;
 %%
-%[text] Set `loadSimulationData=true` to download pregenerated simulation data for training. To regenerate the simulation data from scratch, set `loadSimulationData=false`. This will take about 40 minutes.
-loadSimulationData = true;
-if loadSimulationData
-    % The following 2 lines will be uncommented once the support files are up.
-    % pregeneratedSimulationDataURL = "https://ssd.mathworks.com/supportfiles/sciml/data/batteryHeatAnalysis.zip";
-    % downloadSimuationData(pregeneratedSimulationDataURL, pwd);
-end
-%%
-%[text] ## Specify Battery Module Geometry and Generate Simulation Data
-%[text] The battery module is composed of repeated cells. The helper function `createBateryModuleGeometry` sets up the geometry. The battery is composed of 20 aligned cells, and various parameters specify the shape of those cells.
-cellWidth = 150/1000;
-cellThickness = 15/1000;
-tabThickness = 10/1000;
-tabWidth = 15/1000;
-cellHeight = 100/1000;
-tabHeight = 5/1000;
-connectorHeight = 3/1000;
-
+%[text] ## Specify Battery Module Geometry
+%[text] Specify the sizes for the battery module geometry. Specify the number of cells in the module and the sizes of the cells, tabs, and connectors.
 numCellsInModule = 20;
 
-[geomModule,volumeIDs,boundaryIDs,volume,area,ReferencePoint] = ...
-    createBatteryModuleGeometry(numCellsInModule, ...
-    cellWidth, ...
-    cellThickness, ...
-    tabThickness, ...
-    tabWidth, ...
-    cellHeight, ...
-    tabHeight, ...
-    connectorHeight);
-%[text] Create an [`femodel`](https://mathworks.com/help/pde/ug/femodel.html) from the geometry and visualize with [`pdemesh`](https://mathworks.com/help/pde/ug/femodel.pdemesh.html).
-model = femodel(AnalysisType="thermalTransient", ...
+cellWidth = 0.150;
+cellThickness = 0.015;
+tabThickness = 0.01;
+tabWidth = 0.015;
+cellHeight = 0.1;
+tabHeight = 0.005;
+connectorHeight = 0.003;
+%[text] Create the battery module geometry using the `createBatteryModuleGeometry` function, attached to this example as a supporting file. To access this function, open this example as a live script. 
+[geomModule, volumeIDs, boundaryIDs, volume] = createBatteryModuleGeometry( ...
+    numCellsInModule,cellWidth,cellThickness,tabThickness, ...
+    tabWidth,cellHeight,tabHeight,connectorHeight);
+%[text] Create a finite element analysis model object from the geometry and visualize it in a PDE mesh plot.
+model = femodel( ...
+    AnalysisType="thermalTransient", ...
     Geometry=geomModule);
 
 model = generateMesh(model);
-pdemesh(model) %[output:0be5d57d]
+pdemesh(model)
+title("Battery Module Geometry") %[output:0be5d57d]
 %%
-%[text] This section sets up the material properties of the model following the [original example](https://mathworks.com/help/pde/ug/battery-module-cooling-analysis-and-reduced-order-thermal-model.html).
+%[text] ## Generate Training Data
+%[text] Generate a data set of temperature distributions by solving the heat equation for different combinations of physical and environmental parameters.
+%[text] Specify the thermal conductivity of the battery in watts per meter-kelvin (W/(K\*m)).
+throughPlaneConductivity = 2;
+inPlaneConductivity = 80;
+thermalConductivityTab = 386;
+thermalConductivityConnector = 400;
+%[text] Specify the mass densities of the battery components in kilograms per cubic meter (kg/m³).
+densityCell = 780;
+densityTab = 2700;
+densityConnector = 540;
+%[text] Specify the specific heat values of the battery components in joules per kilogram-kelvin (J/(kg\*K)).
+heatCell = 785;
+heatTab = 890;
+heatConnector = 840;
+%[text] To generate parameters for a range of simulation inputs, specify the minimum and maximum values of the ambient temperature, convection coefficients, and heat generation rates. For each range, specify to use 6 regularly spaced values.
+numValues = 6;
+
+minAmbientTemperature = 280;
+maxAmbientTemperature = 300;
+
+minFrontBackConvection = 10;
+maxFrontBackConvection = 20;
+
+minHeatGeneration = 10;
+maxHeatGeneration = 20;
+%[text] Specify the number of time steps to solve the model for. This example uses a value of $T=600$ (10 minutes).
+T = 600;
+%%
+%[text] Create arrays containing a range of values for the ambient temperature, convection coefficients, and heat generation rates. 
+ambientTemperature = linspace(minAmbientTemperature,maxAmbientTemperature,numValues);
+frontBackConvection = linspace(minFrontBackConvection,maxFrontBackConvection,numValues);
+heatGeneration = linspace(minHeatGeneration,maxHeatGeneration,numValues);
+%[text] Combine the through-plane and in-plane conductivity values.
+thermalConductivityCell = [ ...
+    throughPlaneConductivity
+    inPlaneConductivity
+    inPlaneConductivity];
+%[text] Collect IDs for assigning material properties and boundary conditions.
 cellIDs = [volumeIDs.Cell];
-tabIDs = [volumeIDs.TabLeft,volumeIDs.TabRight];
-connectorIDs = [volumeIDs.ConnectorLeft,volumeIDs.ConnectorRight];
-bottomPlateFaces = [boundaryIDs.BottomFace];
+tabIDs = [volumeIDs.TabLeft volumeIDs.TabRight];
+connectorIDs = [volumeIDs.ConnectorLeft volumeIDs.ConnectorRight];
+%[text] Assign the material properties of the cell body, tabs, and connectors.
+model.MaterialProperties(cellIDs) = materialProperties( ...
+    ThermalConductivity=thermalConductivityCell, ...
+    MassDensity=densityCell, ...
+    SpecificHeat=heatCell);
 
-cellThermalCond.inPlane = 80;
-cellThermalCond.throughPlane = 2;
-tabThermalCond = 386;
-connectorThermalCond = 400;
+model.MaterialProperties(tabIDs) = materialProperties( ...
+    ThermalConductivity=thermalConductivityTab, ...
+    MassDensity=densityTab, ...
+    SpecificHeat=heatTab);
 
-density.Cell = 780;
-density.TabLeft = 2700;
-density.TabRight = 2700;
-density.ConnectorLeft = 540;
-density.ConnectorRight = 540;
-
-spHeat.Cell = 785;
-spHeat.TabLeft = 890;
-spHeat.TabRight = 890;
-spHeat.ConnectorLeft = 840;
-spHeat.ConnectorRight = 840;
-
-model.MaterialProperties(cellIDs) = ...
-    materialProperties(ThermalConductivity= ...
-    [cellThermalCond.throughPlane
-    cellThermalCond.inPlane
-    cellThermalCond.inPlane], ...
-    MassDensity=density.Cell, ...
-    SpecificHeat=spHeat.Cell);
-model.MaterialProperties(tabIDs) = ...
-    materialProperties(ThermalConductivity=tabThermalCond, ...
-    MassDensity=density.TabLeft, ...
-    SpecificHeat=spHeat.TabLeft);
-model.MaterialProperties(connectorIDs) = ...
-    materialProperties(ThermalConductivity=connectorThermalCond, ...
-    MassDensity=density.ConnectorLeft, ...
-    SpecificHeat=spHeat.ConnectorLeft);
-%[text] Let the following 3 properties vary, the ambient temperature, the convection through the front and back of the module, and the heat generated by the cells.
-numSamples = 6;
-ambientTemperatureMin = 280;
-ambientTemperatureMax = 300;
-ambientTemperature = linspace(ambientTemperatureMin, ambientTemperatureMax, numSamples);
-
-frontBackConvectionMin = 10;
-frontBackConvectionMax = 20;
-frontBackConvection = linspace(frontBackConvectionMin, frontBackConvectionMax, numSamples);
-
-heatGenerationMin = 10;
-heatGenerationMax = 20;
-heatGeneration = linspace(heatGenerationMin, heatGenerationMax, numSamples);
-%[text] Use `ndgrid` to create all combinations of these parameters.
-[ambientTemperature, frontBackConvection, heatGeneration] = ndgrid(ambientTemperature, frontBackConvection,heatGeneration);
-ambientTemperature = reshape(ambientTemperature,[],1);
-frontBackConvection = reshape(frontBackConvection,[],1);
-heatGeneration = reshape(heatGeneration,[],1);
-params = cat(2,ambientTemperature,frontBackConvection,heatGeneration);
-%[text] Loop through each parameter combination, specify the appropriate properties on the model, and solve. The simulation here solves up to time $T = 600$, i.e. 10 minutes.
-%[text] This step can take over 40 minutes to solve all of the instances of the PDE. It is recommended you save the `results` variable if you intend to run this example multiple times using the command `save("pregeneratedSimulationData", "results","-v7.3")`, using `"-v7.3"` as the file is 1.96GB. If `loadSimulationData=true`, then pregenerated data will be used instead of running the simulation.
-if loadSimulationData %[output:group:02e29dce]
-    load("pregeneratedSimulationData");
-else
-    results = cell(size(params,1),1);
-    T = 60*10;
-    timeVector = 0:60:T;
-    for i = 1:size(params,1)
-        model.FaceLoad([boundaryIDs(1).FrontFace, ...
-            boundaryIDs(end).BackFace]) = ...
-            faceLoad(ConvectionCoefficient=params(i,2), ...
-            AmbientTemperature=params(i,1));
-    
-        nominalHeatGen = params(i,3)/volume(1).Cell;
-        model.CellLoad(cellIDs) = cellLoad(Heat=nominalHeatGen);
-    
-        model.CellIC = cellIC(Temperature=params(i,1));
-    
-        results{i} = solve(model,timeVector); %[output:26740b63]
-    end
-    % save("pregeneratedSimulationData", "results", "-v7.3") this line will be removed
-end %[output:group:02e29dce]
+model.MaterialProperties(connectorIDs) = materialProperties( ...
+    ThermalConductivity=thermalConductivityConnector, ...
+    MassDensity=densityConnector, ...
+    SpecificHeat=heatConnector);
+%[text] Create an array of all combinations of varying parameters using the `combinations` function.
+tbl = combinations(ambientTemperature,frontBackConvection,heatGeneration);
+parameters = tbl.Variables;
 %%
-%[text] ## Prepare data for training
-%[text] The geometry in this example can be well approximated by a regular grid discretization without too much discretization error. 
+%[text] To generate the data, solve the transient heat equation by looping through each parameter combination. For each combination, assign the corresponding boundary and source conditions, then solve the model using `solve` function of the `femodel` object. To later compare the time it takes to compute the solutions numerically versus using the neural network trained in this example, time the data generation process.
+%[text] This step can take a long time to run. The example downloads the results. To generate the data, set the `doGeneration` variable to `true`. 
+if doGeneration
+    tic
+    fprintf("Generating data... ")
+
+    results = cell(size(parameters,1),1);
+
+    faceIDs = [boundaryIDs(1).FrontFace boundaryIDs(end).BackFace];
+
+    for i = 1:size(parameters,1)
+        model.FaceLoad(faceIDs) = faceLoad( ...
+            ConvectionCoefficient=parameters(i,2), ...
+            AmbientTemperature=parameters(i,1));
+
+        nominalHeat = parameters(i,3)/volume(1).Cell;
+        model.CellLoad(cellIDs) = cellLoad(Heat=nominalHeat);
+
+        model.CellIC = cellIC(Temperature=parameters(i,1));
+
+        results{i} = solve(model,[0 T]);
+    end
+    elapsedGeneration = toc;
+    fprintf("Done.\n")
+    fprintf("Data generation time: %f seconds.\n",elapsedGeneration)
+else
+    fprintf("Downloading data... ")
+    filenameData = matlab.internal.examples.downloadSupportFile("nnet","data/BatteryModuleCoolingData.mat");
+    load(filenameData)
+    fprintf("Done.\n")
+end %[output:26740b63]
+%%
+%[text] Visualize one of the observations.
+i = 1;
+result = results{i};
+target = result.Temperature(:,end);
+
+tempMin = min(target);
+tempMax = max(target);
+
+figure
+pdeplot3D(result.Mesh, ...
+    ColorMapData=target, ...
+    FaceAlpha=1);
+
+clim([tempMin tempMax]);
+title("Training Observation " + num2str(i))
+%%
+%[text] ## Prepare Data for Training
+%[text] Fourier neural operators require the data to be aligned on a regular grid of points, like those that `meshgrid` and `ndgrid` create.
+%[text] At each point $(x\_i,y\_i,z\_i)$ on the grid these physical properties vary:
+%[text] - The ambient temperature $T\_i$,
+%[text] - The convection $P\_i$
+%[text] - The heat generation $Q\_i$ \
+%[text] These varying physical properties are the input features $u$. The targets $v$ are the corresponding temperatures of the points at the end of the simulation.
+%[text] By considering $T\_i$, $P\_i$, and $Q\_i$ as functions of the points $(x\_i,y\_i,z\_i)$ and extending these functions to take a value of zero at the unspecified vertices, you can consider the function $u\_i(x,y,z) = (x,y,z,T\_i(x,y,z),P\_i(x,y,z),Q\_i(x,y,z))$ as a representation of the input data. 
+%[text] The results from the data generation step are the values of $u\_i$ and $v\_i$ aligned to the mesh vertices. You can interpolate these aligned points onto a regular grid. This gives a 5-dimensional array `U`. The dimensions of the array correspond to different details of the data:
+%[text] - The first three dimensions index into the spatial coordinates.
+%[text] - The fourth dimension indexes into the input features.
+%[text] - The fifth dimension indexes into the observations. \
+%[text] Specify a grid size of 32.
+gridSize = 32;
 %[text] Get the bounds of the mesh.
 XYZ = geomModule.Mesh.Nodes;
-Xmin = min(XYZ,[],2);
-Xmax = max(XYZ,[],2);
-xmin = Xmin(1,:);
-xmax = Xmax(1,:);
-ymin = Xmin(2,:);
-ymax = Xmax(2,:);
-zmin = Xmin(3,:);
-zmax = Xmax(3,:);
-%[text] Create grid coordinates. This example discretizes the domain onto a $32 \\times 32 \\times 32$ grid. 
-n = 32;
-x = linspace(xmin,xmax,n);
-y = linspace(ymin,ymax,n);
-z = linspace(zmin,zmax,n);
+
+xMin = min(XYZ(1,:));
+xMax = max(XYZ(1,:));
+
+yMin = min(XYZ(2,:));
+yMax = max(XYZ(2,:));
+
+zMin = min(XYZ(3,:));
+zMax = max(XYZ(3,:));
+%[text] Create the grid coordinates.
+x = linspace(xMin,xMax,gridSize);
+y = linspace(yMin,yMax,gridSize);
+z = linspace(zMin,zMax,gridSize);
+
 [X,Y,Z] = meshgrid(x,y,z);
-Xflat = reshape(X,[],1);
-Yflat = reshape(Y,[],1);
-Zflat = reshape(Z,[],1);
-%[text] At each $(x\_i,y\_i,z\_i)$ on the grid there are 3 material and physical properties that we let vary above: the ambient temperature $T\_i$, the convection $P\_i$ and the heat generation $Q\_i$ at the point $(x\_i, y\_i, z\_i)$. These will be the input features $u$. The target $v$ is the temperature at $(x\_i,y\_i,z\_i)$ at the end time of the simulation. 
-%[text] For a given instance of the parameters, `params(i,:)` corresponds to an ambient temperature $T\_i$, convection $P\_i$ and heat generation $Q\_i$ specified at the chosen vertices above. We can then consider $u\_i(x,y,z) = (T\_i(x,y,z),P\_i(x,y,z),Q\_i(x,y,z))$ as a function representation of the input data, where $T\_i, P\_i, Q\_i$ have been extended to take the value $0$ at all vertices besides those specified above. In this sense each of `results{i}` contains to a discretization of $u\_i$ onto the mesh vertices. The temperature $v\_i$ can be considered similarly.
-%[text] We can interpolate the mesh discretization onto a regular grid or $32 \\times 32 \\times 32$ points. This will give us a multi-dimensional array `U` where `U(i,j,k,p,n)` corresponds to the `p`-th feature of the `n`-th observation at point $(x\_i,y\_j,z\_k)$. 
-%[text] The target temperature can be interpolated using [`interpolateTemperature`](https://uk.mathworks.com/help/pde/ug/pde.steadystatethermalresults.interpolatetemperature.html)`.T`he other parameters are interpolated using [`scatteredInterpolant`](https://uk.mathworks.com/help/matlab/ref/scatteredinterpolant.html). For the `scatteredInterpolant` approach, we use [`findNodes`](https://uk.mathworks.com/help/pde/ug/pde.femesh.findnodes.html) to get the node indices where material properties were specified, and interpolate a function defined to have the specified property value at those nodes, and $0$ elsewhere. The ambient temperature is treated as a constant feature across space.
-%[text] The `interpolateTemperature` function may return `NaN` at coordinates that are actually extrapolations. This occurs because the grid coordinates may lie outside the geometry. In this case this is due to the tabs on the battery module which extend in the $z$-dimension. The approach here is to impute the `NaN` values by projecting up from the last non `NaN` value in the $z$ dimension.
-%[text] As above, this interpolation step may take some time and it is advisable to save the data with a command such as `save("interpolatedData","U","V")` if you intend to run this example multiple times. If `loadSimulationData=true`, then pregenerated interpolated data will be used instead of performing the interpolation.
-if loadSimulationData
-    load("interpolatedData");
-else
-    U = zeros(n,n,n,3,size(params,1));
-    V = zeros(n,n,n,1,size(params,1));
-    
-    for i = 1:size(params,1)
+%[text] Interpolate temperature, convection, and heat generation onto a regular grid. Impute missing values, then assemble input-output tensors for training. For each parameter:
+%[text] - Calculate the targets by interpolating the final temperature onto the regular grid using the `interpolateTemperature` function. Find any NaN values and impute them by projecting up from the last non-`NaN` value in the $z$-dimension. NaN values occur when grid coordinates lie outside the geometry. For example, NaN values can occur when the tabs on the battery module extend in the $z$-dimension.
+%[text] - Create functions for the convection aligned onto the nodes.
+%[text] - Interpolate the convection and heat generation data to the grid points using the `scatteredInterpolant` function.
+%[text] - Specify the ambient temperature as a constant feature, and append the convection and heat generation interpolated features.
+%[text] - Add the data to the `U` and `V` variables. \
+%[text] Use the `findNodes` function to get the node indices where material properties are specified, and interpolate a function that has the specified property value at those nodes, and zero elsewhere. This approach of extending values as zero makes physical sense because in the PDE formulation, boundary conditions and source terms are naturally represented this way. When a physical property (like convection) only applies at specific boundaries or regions, it has no effect elsewhere in the domain, which corresponds to a value of zero. Similarly, heat generation only occurs within the battery cells and is zero elsewhere. By representing the data this way, this maintains the physical meaning of these parameters while creating a consistent format for the neural network to learn from.
+%[text] This step can take a long time to run. The example downloads the results. To interpolate the generated data, set the `doGeneration` variable to `true`.
+F = scatteredInterpolant(model.Mesh.Nodes.', zeros(size(model.Mesh.Nodes,2),1));
+
+if doGeneration
+    tic
+    fprintf("Generating data... ")
+
+    numParameters = size(parameters,1);
+    U = zeros(gridSize,gridSize,gridSize,numValues,numParameters);
+    V = zeros(gridSize,gridSize,gridSize,1,numParameters);
+
+    for i = 1:numParameters
         result = results{i};
-    
-        % Interpolate the final temperature onto the regular grid
-        tidx = length(result.SolutionTimes);
-        T = result.interpolateTemperature(Xflat,Yflat,Zflat,tidx);
-        T = reshape(T,n,n,n);
-    
-        % Find the nan-s and impute along the z-dimension
-        nans = isnan(T);
-        for j = 1:n
-            for k = 1:n
-                idx = find(nans(j,k,:),1);
-                T(j,k,idx:end) = T(j,k,idx-1);
-            end
-        end
-    
-        % Specify the target
-        V(:,:,:,:,i) = T;
-    
-        % Specify functions for the convection discretised
-        % onto the nodes.
-        % Get the nodes for the face loads
+
+        % Interpolate the final temperature onto the regular grid.
+        idxT = length(result.SolutionTimes);
+        T = interpolateTemperature(result,X(:),Y(:),Z(:),idxT);
+        T = reshape(T,gridSize,gridSize,gridSize);
+
+        % Find NaN values and impute along the z-dimension.
+        T = fillmissing(T,"previous",3);
+
+        % Specify functions for the convection aligned
+        % onto the face load nodes.
+        boundary = findNodes(result.Mesh,"region",Face=faceIDs);
         convection = zeros(size(result.Mesh.Nodes,2),1);
-        boundary = findNodes(result.Mesh,"region",Face = [boundaryIDs(1).FrontFace,boundaryIDs(end).BackFace]);
-        convection(boundary) = params(i,2);
-    
-        % Interpolate the convection to the grid points
-        F = scatteredInterpolant(result.Mesh.Nodes.', convection);
+        convection(boundary) = parameters(i,2);
+
+        % Interpolate the convection to the grid points.
+        F.Values = convection;
         convectionGrid = F(X,Y,Z);
-    
-        % Similarly interpolate the heat generation.
-        heatGen = zeros(size(result.Mesh.Nodes,2),1);
+
+        % Interpolate the heat generation.
         cells = findNodes(result.Mesh,"region",Cell=cellIDs);
-        heatGen(cells) = params(i,3);
-        G = scatteredInterpolant(result.Mesh.Nodes.',heatGen);
-        heatGenGrid = G(X,Y,Z);
-    
+        heatGeneration = zeros(size(result.Mesh.Nodes,2),1);
+        heatGeneration(cells) = parameters(i,3);
+
+        F.Values = heatGeneration; 
+        heatGenerationGrid = F(X,Y,Z);
+
         % Specify the ambient temperature as a constant feature, and append the
         % convection and heat generation interpolated features.
-        ambientTemperature = repmat(params(i,1),size(convectionGrid));
-        U(:,:,:,:,i) = cat(4,ambientTemperature,convectionGrid,heatGenGrid);
+        ambientTemperature = repmat(parameters(i,1),size(convectionGrid));
+
+        U(:,:,:,1:3,i) = cat(4,X,Y,Z);
+        U(:,:,:,4:end,i) = cat(4,ambientTemperature,convectionGrid,heatGenerationGrid);
+        V(:,:,:,:,i) = T;
     end
-    % save("interpolatedData","U","V") this line will be removed
+
+    fprintf("Done.\n")
+    toc
+else
+    fprintf("Downloading data... ")
+    filenameDataInterpolated = matlab.internal.examples.downloadSupportFile("nnet","data/BatteryModuleCoolingDataInterpolated.mat");
+    load(filenameDataInterpolated)
+    fprintf("Done.\n")
 end
-%%
 %[text] Split the data into training, validation, and testing datasets. Use an 80/10/10 split.
 [idxTrain, idxVal, idxTest] = trainingPartitions(size(U, 5), [0.8 0.1 0.1]);
 Utrain = U(:, :, :, :, idxTrain);
@@ -227,19 +261,6 @@ Vval = V(:, :, :, :, idxVal);
 
 Utest = U(:, :, :, :, idxTest);
 Vtest = V(:, :, :, :, idxTest);
-%[text] Normalize the input data and ground‑truth labels using min–max normalization. This rescales all features into a consistent range, making the data easier for the network to learn from.
-umax = max(Utrain,[],[1,2,3,5]);
-umin = min(Utrain,[],[1,2,3,5]);
-vmax = max(Vtrain,[],[1,2,3,5]);
-vmin = min(Vtrain,[],[1,2,3,5]);
-
-epsilon = eps;
-Utrain = (Utrain - umin)./(umax - umin + epsilon);
-Vtrain = (Vtrain - vmin)./(vmax - vmin + epsilon);
-Uval = (Uval - umin)./(umax - umin + epsilon);
-Vval = (Vval - vmin)./(vmax - vmin + epsilon);
-Utest = (Utest - umin)./(umax - umin + epsilon);
-Vtest = (Vtest - vmin)./(vmax - vmin + epsilon);
 
 Utrain = dlarray(Utrain, "SSSCB");
 Vtrain = dlarray(Vtrain, "SSSCB");
@@ -257,7 +278,7 @@ Vtest = dlarray(Vtest, "SSSCB");
 %[text] | Hyperparameter | Value | Explanation |
 %[text] | --- | --- | --- |
 %[text] | Number of dimensions, $N${"editStyle":"visual"} | 3 | <p>We are modeling heat diffusion over 3 spatial dimensions and predicting the temperature at a single point in the future.</p><p>If we were to model temperature over time, then an additional dimension would be required. If we were to only model </p><p>the temperature of a single cross section of the battery, which is a 2D plane, then the number of dimensions would be 2.</p> |
-%[text] | Number of input channels, $C\_{\\mathrm{in}}${"editStyle":"visual"} | 3 | <p>The input data in each spatial location includes ambient temperature, convection, and heat generation, for 3 total input</p><p>channels. Another example with 3 input channels could be modeling a 3D velocity field for fluid flow prediction, </p><p>represented by u, v, and w components.</p> |
+%[text] | Number of input channels, $C\_{\\mathrm{in}}${"editStyle":"visual"} | 6 | <p>The input data in each spatial location includes ambient temperature, convection, heat generation, and 3 spatial </p><p>channels for 3 total input channels. Another PDE example with 6 input channels could be a 3D velocity field of fluid flow </p><p>, represented by u, v, and w components as well as 3 spatial channels.</p> |
 %[text] | Number of output channels, $C\_{\\mathrm{out}}${"editStyle":"visual"} | 1 | <p>The network will predict the temperature in each spatial location. If we wanted to predict multiple values at each output</p><p>spatial location, such as temperature and other physical quantities like pressure or material phase, we would configure</p><p>the model to output one channel per predicted field.</p> |
 %[text] | Number of modes, $M${"editStyle":"visual"} | 4 | <p>The number of retained low‑frequency Fourier modes in each spatial dimension used by the spectral convolution layer</p><p>to perform the global convolution in the frequency domain. In practice, values in the range 4 to 32 work well, with fewer</p><p>modes needed in higher dimensional problems and for less complicated PDEs.</p> |
 %[text] | Number of hidden channels, $C\_{\\mathrm{hidden}}${"editStyle":"visual"} | 64 | <p>The number of channels in the hidden layers of the TFNO. This is a knob to control the representational capacity of the</p><p>network, where higher values are needed for more complicated PDEs. Values in the range 16 to 64 tend to work well.</p> |
@@ -272,32 +293,29 @@ Vtest = dlarray(Vtest, "SSSCB");
 %[text] #### Compression via Tensorization
 %[text] The "full rank" or "dense" spectral convolution weight tensor, without any compression, is of size $\\left\\lbrack C\_{\\mathrm{hidden}} ,C\_{\\mathrm{hidden}} ,\\;M\_1 ,M\_2 ,M\_3 \\right\\rbrack${"editStyle":"visual"}, which is over 262,000 learnables for the current hyperparameter settings. That is just for one layer; for four layers, the spectral convolution parameters eclipse a million learnables. Compression is applied to the weight tensors in each spectral convolution layer via tensorization. For details, refer to the paper \[[2](internal:M_01fc)\].
 %[text] First, create a dense TFNO to see the amount of parameters in the full rank model.
-inputChannels = 3;
+inputChannels = 6;
 outputChannels = 1;
 numModes = 4;
 hiddenChannels = 64;
 numBlocks = 4;
-spatialLimits = [xmin, xmax; ymin, ymax; zmin, zmax];
 
-netDense = tfno3d(numModes, ...
+netDense = tfno.tfno3d(numModes, ...
     hiddenChannels, ...
     InChannels=inputChannels, ...
     OutChannels = outputChannels, ...
-    NumBlocks=numBlocks, ...
-    SpatialLimits=spatialLimits);
+    NumBlocks=numBlocks);
 
 analysis = analyzeNetwork(netDense, Plots="none");
 denseLearnables = analysis.TotalLearnables %[output:4b14a168]
 %[text] Now, set the compression to 0.05 and observe the new number of learnables.
 compressionRank = 0.05;
 
-net = tfno3d(numModes, ...
+net = tfno.tfno3d(numModes, ...
     hiddenChannels, ...
     InChannels=inputChannels, ...
     OutChannels = outputChannels, ...
     SpectralRank=compressionRank, ...
-    NumBlocks=numBlocks, ...
-    SpatialLimits=spatialLimits);
+    NumBlocks=numBlocks);
 
 analysis = analyzeNetwork(net, Plots="none");
 compressedLearnables = analysis.TotalLearnables %[output:0d59505d]
@@ -312,7 +330,8 @@ compressionRatio = denseLearnables/compressedLearnables %[output:1265e6f2]
 %[text] - **Data format:** the data is in spatial-channel-batch order.
 %[text] - **Shuffle:** set to `"every-epoch"` to randomize the order that the model sees the data in each epoch.
 %[text] - **Initial learning rate:** a value of 0.001 works well for this problem.
-%[text] - **Epochs:** train for 1000 epochs, which 5-7 several hours. Smalller problems may require fewer epochs for convergence. \
+%[text] - **Epochs:** train for 1000 epochs, which 5-7 several hours. Smalller problems may require fewer epochs for convergence.
+%[text] - **Normalization:** normalize the ground truth data so the network learns to predict in a normalized space. \
 %[text] Train using the [`trainnet`](https://www.mathworks.com/help/deeplearning/ref/trainnet.html) function and the [`relativeH1Loss`](file:./lossFunctions/relativeH1Loss.m) loss function as is done in the paper \[[2](internal:M_01fc)\]. Alternatively, the built-in [`l2loss`](https://www.mathworks.com/help/deeplearning/ref/dlarray.l2loss.html) also works for this problem, as demonstrated by the prior [FNO](https://github.com/matlab-deep-learning/SciML-and-Physics-Informed-Machine-Learning-Examples/tree/main/battery-module-cooling-analysis-with-fourier-neural-operator) example. The L2 loss does a point-wise comparison between predictions and ground truth, while the relative H1 loss additionally encourages the model's predictions to be smooth and match the shape of the ground truth via a comparison of the prediction and ground truth's gradients.
 %[text] The training was done on a 12GB NVIDIA GeForce RTX 2080 Ti GPU. Training for 1000 epochs took 6.66 hours with the relative H1 loss and 5.75 hours with the L2 loss. Training output and curve is shown below for the relative H1 loss, with a decreasing slope indicating that the model is improving on the heat analysis task.
 %[text] As above it is advisable to save the trained network with a command such as `save("trained_model","net")` if you intend to re-use the model or re-run this example.
@@ -325,9 +344,10 @@ opts = trainingOptions("adam",...
     ValidationData = {Uval,Vval},...
     ValidationFrequency=100,...
     InitialLearnRate=0.001, ...
-    MaxEpochs = 1000);
+    MaxEpochs = 1000, ...
+    NormalizeTargets=true);
 
-lossFcn = @(pred, gt) relativeH1Loss(pred, gt, Periodic=false);
+lossFcn = @(pred, gt) lossFunctions.relativeH1Loss(pred, gt, Periodic=false);
 [net, info] = trainnet(Utrain, Vtrain, net, lossFcn, opts); %[output:6dd5e07b] %[output:985f1150]
 % save("allData_3_3", "-v7.3") this line will be removed
 %%
@@ -366,15 +386,15 @@ testLatency(netDense, Utrain, "FNO", batchsize); %[output:653878a4]
 %[text] Compare the train, validation, and test losses using the [`l2loss`](https://www.mathworks.com/help/deeplearning/ref/dlarray.l2loss.html) and [`relativeH1Loss`](file:./lossFunctions/relativeH1Loss.m) functions, setting `NormalizationFactor="all-elements"` in the L2 loss calculation for equal comparison with the prior [FNO](https://github.com/matlab-deep-learning/SciML-and-Physics-Informed-Machine-Learning-Examples/tree/main/battery-module-cooling-analysis-with-fourier-neural-operator) example.
 trainPred = minibatchpredict(net, Utrain);
 trainLossL2 = l2loss(trainPred, Vtrain, NormalizationFactor="all-elements");
-trainLossH1 = relativeH1Loss(trainPred, Vtrain, Periodic=false);
+trainLossH1 = lossFunctions.relativeH1Loss(trainPred, Vtrain, Periodic=false);
 
 valPred = minibatchpredict(net, Uval);
 valLossL2 = l2loss(valPred, Vval, NormalizationFactor="all-elements");
-valLossH1 = relativeH1Loss(valPred, Vval, Periodic=false);
+valLossH1 = lossFunctions.relativeH1Loss(valPred, Vval, Periodic=false);
 
 testPred = minibatchpredict(net, Utest);
 testLossL2 = l2loss(testPred, Vtest, NormalizationFactor="all-elements");
-testLossH1 = relativeH1Loss(testPred, Vtest, Periodic=false);
+testLossH1 = lossFunctions.relativeH1Loss(testPred, Vtest, Periodic=false);
 numTestImgs = numel(idxTest);
 
 l2vals = [extractdata(trainLossL2); extractdata(valLossL2); extractdata(testLossL2)];
@@ -389,8 +409,7 @@ disp(lossTable) %[output:24a16dcc]
 %[text] Choose a validation observation to visualize and compare to ground truth simulation data. To do this, inverse the scaling applied before training and interpolate back onto the mesh using `griddedInterpolant`.
 imageIdx =1; %[control:slider:6d2d]{"position":[11,12]}
 
-% Inverse the scaling applied before training.
-pred = testPred(:,:,:,:,imageIdx).*(vmax - vmin + epsilon) + vmin;
+pred = testPred(:,:,:,:,imageIdx);
 
 % griddedInterpolant wants the data to be in ndgrid format, which requires
 % the following permutation.

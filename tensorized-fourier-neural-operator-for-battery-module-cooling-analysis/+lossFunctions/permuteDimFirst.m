@@ -3,6 +3,9 @@ function X = permuteDimFirst(X, dim)
 %   X = PERMUTEDIMFIRST(X, DIM) moves the dimension specified by DIM
 %   to the first position while maintaining the relative order of other
 %   dimensions.
+
+% Copyright 2026 The MathWorks, Inc.
+
     fmt = dims(X);
     Dim = finddim(X, dim);
     permuteOrder = [Dim setdiff(1:ndims(X), Dim, 'stable')];

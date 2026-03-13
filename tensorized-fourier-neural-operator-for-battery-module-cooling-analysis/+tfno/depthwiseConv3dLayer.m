@@ -44,20 +44,22 @@ classdef depthwiseConv3dLayer < nnet.layer.Layer & ...
 
             hasTimeDimension = ~isempty(tdim);
             numSpatialDimensions  = numel(sdim); 
-            assertValidNumConvolutionDimensions(3, hasTimeDimension, numSpatialDimensions);
+            tfno.validation.assertValidNumConvolutionDimensions(3, hasTimeDimension, numSpatialDimensions);
 
             % Check the input data has a channel dimension
-            assertInputHasChannelDim(1, cdim);
+            tfno.validation.assertInputHasChannelDim(3, cdim);
 
             % There are either SSSCB or SSTCB dims in unknown order
             weightSize = ones(1, 5);
             weightSize(cdim) = layout.Size(cdim);
 
-            % Same initialization as convolution2Dlayer, from 
-            % /matlab/toolbox/nnet/cnn/+nnet/+internal/+cnn/+layer/+learnable/+initializer/Normal.m
-            layer.Weight = dlarray(randn(weightSize), layout.Format) * 0.01;
+            % Glorot initialization
+            Z = 2*rand(weightSize, 'single') - 1;
+            bound = sqrt(6 / 2);
+            layer.Weight = dlarray(bound * Z);
+            
             if layer.UseBias
-                layer.Bias = dlarray(zeros(weightSize), layout.Format);
+                layer.Bias = dlarray(zeros(weightSize, 'single'), layout.Format);
             else
                 layer.Bias = [];
             end
