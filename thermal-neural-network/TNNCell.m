@@ -26,6 +26,21 @@ classdef TNNCell <  nnet.layer.Layer
     methods
 
         function this = TNNCell(inputStruct)
+            % Construct a thermal neural network cell from column metadata.
+
+            arguments
+                inputStruct (1,1) struct
+            end
+
+            requiredFields = ["inputCols", "targetCols", "temperatureCols"];
+            missingFields = requiredFields(~isfield(inputStruct, requiredFields));
+    
+            if ~isempty(missingFields)
+                error("TNNCell:MissingFields", ...
+                    "inputStruct must contain the following fields: %s. Missing: %s.", ...
+                    strjoin(requiredFields, ", "), strjoin(missingFields, ", "));
+            end
+
             % Construct TNNCell
             this.NumInputs = 2;
             this.OutputSize = length(inputStruct.targetCols);
@@ -46,6 +61,8 @@ classdef TNNCell <  nnet.layer.Layer
 
 
         function this = generateNetworks(this)
+            % Initialize learnable neural networks and parameters for the TNN cell.
+
             nTemps = length(this.TemperatureColumns);
             nConds = 0.5 * nTemps * (nTemps - 1) - 1; % fully connected except between the two external nodes
             numNeurons = 16;
@@ -65,6 +82,8 @@ classdef TNNCell <  nnet.layer.Layer
 
 
         function out = predict(this, input, prevOut)
+            % Perform a single forward time-step update of the thermal state.
+
             % Extract temperatures
             tempsInternal = prevOut; % internal nodes
             tempsExternal = input(this.TemperatureIndices,:); % external nodes
@@ -103,6 +122,8 @@ end
 
 
 function [E_x, E_u] = buildIncidenceMatrices(numInternal, numExternal)
+% Construct incidence matrices for a fully connected thermal network.
+%
 % numInternal: number of internal nodes
 % numExternal: number of external nodes
 % Output:

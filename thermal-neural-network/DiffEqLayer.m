@@ -2,10 +2,10 @@ classdef DiffEqLayer <  nnet.layer.Layer & nnet.layer.Formattable
     % DiffEqLayer   Differential equation layer
     % 
     % This layer holds a TNNCell instance, and performs prediction over
-    % tbptt_size time steps.
-    % 
+    % all time steps.
+    
     %   Copyright 2025 The MathWorks, Inc.
-
+    
     properties (Learnable)
         Cell
     end
@@ -23,7 +23,7 @@ classdef DiffEqLayer <  nnet.layer.Layer & nnet.layer.Formattable
             numSteps = size(input, 3); % Assuming input is [features, batch, time]
 
             % Preallocate the outputs:
-            outputs = dlarray(zeros(size(state,[1 2 3]),'single'),'CBT');
+            outputs = dlarray(zeros(sz, like=input),'CBT');
             
             % Iterate over each time step
             thisCell = this.Cell;

@@ -9,7 +9,7 @@ As electric power systems become more compact with higher power density, thermal
 -  White\-box models (for example, Lumped Parameter Thermal Networks or LPTNs) require detailed geometry, material properties, and expert knowledge. 
 -  Black\-box models (for example, deep learning) require large data sets and lack physical interpretability. 
 
-Thermal Neural Networks (TNN) unite both approaches by combining the physical interpretability of LPTNs with the learning capabilities of neural networks. This creates a [physics\-informed machine learning](https://blogs.mathworks.com/deep-learning/2025/06/23/what-is-physics-informed-machine-learning/) model that:
+Thermal Neural Networks unite both approaches by combining the physical interpretability of LPTNs with the learning capabilities of neural networks. This creates a [physics\-informed machine learning](https://blogs.mathworks.com/deep-learning/2025/06/23/what-is-physics-informed-machine-learning/) model that:
 
 -  Has physically interpretable states through its state\-space representation 
 -  Requires no material, geometry, or expert knowledge for its design 
@@ -21,22 +21,18 @@ This implementation trains a TNN to estimate temperatures within an electric mot
 -  Stator tooth 
 -  Stator winding 
 
-![image_0.png](README_media/image_0.png)
+![Cross-sectional diagram of an electric motor showing the rotor and stator, labeled stator slots and windings (a, b, c), and the direct (d) and quadrature (q) magnetic axes with rotor electrical angle θᵣ](README_media/image_0.png)
 
 
 The data set contains various operational measurements from an electric motor, including currents, voltages, torque, speed, and ambient conditions. The TNN model learns to estimate the internal temperatures that would typically require embedded temperature sensors, which are often impractical in production motors.
 
-This example is intended to be an instructional resource demonstrating how to build and train a TNN in MATLAB. For integration and use with Simulink, see the Github repository [here](https://github.com/wkirgsn/thermal-nn/tree/main/matlab). For video content on this topic, check out this recorded MATLAB Expo talk on [Thermal Neural Network for Temperature Modeling in E-Motors](https://www.mathworks.com/videos/thermal-neural-network-for-temperature-modeling-in-e-motors-1762251869161.html) and this [YouTube video](https://youtu.be/ySRjX9GUiCA?si=s7slG-9Ekt6y9wUe). 
+This example is intended to be an instructional resource demonstrating how to build and train a TNN in MATLAB. For integration and use with Simulink, see the [thermal neural network for electric motor temperature estimation Github repository](https://github.com/wkirgsn/thermal-nn/tree/main/matlab). For video content on this topic, check out this recorded MATLAB Expo talk on [Thermal Neural Network for Temperature Modeling in E-Motors](https://www.mathworks.com/videos/thermal-neural-network-for-temperature-modeling-in-e-motors-1762251869161.html) as well as a related [thermal neural network YouTube video](https://youtu.be/ySRjX9GUiCA?si=s7slG-9Ekt6y9wUe). 
 
-# **Setup**
+# **Get Started**
 Run the example by running [`ThermalNeuralNetwork.m`](ThermalNeuralNetwork_code.m).
 
 # **Requirements**
 MATLAB version R2025a is strongly recommended for full functionality. At a minimum, this example requires MATLAB release R2024a or newer as well as Deep Learning Toolbox. 
-
-# References
-<a id="M_560c"></a>
-1.  Wilhelm Kirchgässner, Oliver Wallscheid, Joachim Böcker, Thermal neural networks: Lumped\-parameter thermal modeling with state\-space machine learning, Engineering Applications of Artificial Intelligence 117 (2023) 105537. [https://doi.org/10.1016/j.engappai.2022.105537](https://doi.org/10.1016/j.engappai.2022.105537)
 
 # **Prepare Data for Training**
 
@@ -83,7 +79,7 @@ data = readtable("measures_v2.csv")
 
 
 
-The data set contains measurements from various sensors on an electric motor across multiple test profiles. Each row represents a measurement at a specific time point, and each column represents a different sensor or calculated value. In addition to the measured data the `profile_id` column identifies different test profile. You can use the `profile_id` value to separate the training and testing data. 
+The data set contains measurements from various sensors on an electric motor across multiple test profiles. Each row represents a measurement at a specific time point, and each column represents a different sensor or calculated value. In addition to the measured data, the `profile_id` column identifies different test profiles. You can use the `profile_id` value to separate the training and testing data. 
 
 
 Define the four target temperatures that you aim to predict:
@@ -114,7 +110,7 @@ for i = 1:length(allTemperatures)
 end
 ```
 
-Normalize all non\-temperature input columns by dividing by the maximum values.
+Normalize all non\-temperature input columns by dividing by their maximum values.
 
 ```matlab
 nonTemperatureColumns = setdiff(inputParameters,["ambient","coolant"]);
@@ -136,11 +132,11 @@ end
 ```
 ## Split Data into Training and Test Sets
 
-The dataset contains multiple test profiles with varying operating conditions, allowing the model to learn the thermal behavior across different scenarios. Split the data by profile ID to ensure the model generalizes to unseen operating conditions.
+The data set contains multiple test profiles with varying operating conditions, allowing the model to learn the thermal behavior across different scenarios. Split the data by profile ID to ensure the model generalizes to unseen operating conditions.
 
 ```matlab
 allProfiles = unique(data.profile_id,"stable");
-testProfiles = [60,62,74]; % Profile ids reserved for the test data.
+testProfiles = [60,62,74]; % Profile IDs reserved for the test data.
 trainProfiles = setdiff(allProfiles,testProfiles);
 ```
 ## Prepare Sequence Data
@@ -158,7 +154,7 @@ profileSizes = groupcounts(data,"profile_id");
 ```
 # Define Network Architecture
 
-The Thermal Neural Network (TNN) is a physics\-informed neural architecture that can model heat transfer dynamics in systems like electric motors. The model learns key thermal parameters (conductance, capacitance, and power loss) directly from the data, eliminating the need for geometry or material specifications.
+The Thermal Neural Network is a physics\-informed neural architecture that can model heat transfer dynamics in systems like electric motors. The model learns key thermal parameters (conductance, capacitance, and power loss) directly from the data, eliminating the need for geometry or material specifications.
 
 The core of the TNN is based on a discrete\-time state\-space formulation derived from lumped\-parameter thermal network (LPTN) principles.
 
@@ -308,7 +304,7 @@ for epoch = 1:numEpochs
 end
 ```
 
-![figure_0.png](README_media/figure_0.png)
+![Training loss versus iteration for the thermal neural network, showing convergence over time](README_media/figure_0.png)
 # Evaluate Model
 
 Evaluate the trained model on the test data set (profiles 60, 62, 74). Visualize the performance by comparing the predicted and actual temperatures.
@@ -326,5 +322,8 @@ profileLengths = profileSizes.GroupCount(ismember(profileSizes.profile_id,testPr
 generatePlots(profileLengths,testData,prediction,scale,targetTemperatures)
 ```
 
-![figure_1.png](README_media/figure_1.png)
+![Grid of time‑series plots comparing ground‑truth (green) and MATLAB neural network predictions (blue) for multiple temperature profiles in motor components, including permanent magnet, stator yoke, stator tooth, and stator winding. Each subplot reports mean‑squared error and maximum absolute error.](README_media/figure_1.png)
 
+# References
+<a id="M_560c"></a>
+1.  Kirchgässner, Wilhelm, et al. "Thermal Neural Networks: Lumped-Parameter Thermal Modeling with State-Space Machine Learning." Engineering Applications of Artificial Intelligence, vol. 117, Jan. 2023, p. 105537. DOI.org (Crossref), [https://doi.org/10.1016/j.engappai.2022.105537](https://doi.org/10.1016/j.engappai.2022.105537).
