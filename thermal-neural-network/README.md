@@ -32,7 +32,7 @@ This example is intended to be an instructional resource demonstrating how to bu
 Run the example by running [`ThermalNeuralNetwork.m`](ThermalNeuralNetwork_code.m).
 
 # **Requirements**
-MATLAB version R2025a is strongly recommended for full functionality. At a minimum, this example requires MATLAB release R2024a or newer as well as Deep Learning Toolbox. 
+This example requires MATLAB release R2024a or newer as well as Deep Learning Toolbox. 
 
 # **Prepare Data for Training**
 
