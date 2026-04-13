@@ -163,7 +163,7 @@ The core of the TNN is based on a discrete\-time state\-space formulation derive
 
 A simplified discrete state equation for each component $i$ of a LPTN model is:
 
- $$ T_i (k+1)=T_i (k)+t_s \kappa_i (k)\left(\pi_i (k)+\sum_{m\;\in \;components} \gamma_{im} (k)\Delta T_{im} (k)+\sum_{n\;\in \;ancillary} \gamma_{in} (k)\Delta T_{in} (k)\right) $$ 
+ $$ T_i (k+1)=T_i (k)+t_s \kappa_i (k)\left(\pi_i (k)+\sum_{m\in components} \gamma_{im} (k)\Delta T_{im} (k)+\sum_{n\in ancillary} \gamma_{in} (k)\Delta T_{in} (k)\right) $$ 
 
 Where,
 
