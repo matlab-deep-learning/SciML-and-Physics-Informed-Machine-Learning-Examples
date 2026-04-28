@@ -37,10 +37,11 @@ Explore the following examples on PINNs.
 * [Solve PDE Using Physics-Informed Neural Network](https://uk.mathworks.com/help/deeplearning/ug/solve-partial-differential-equations-with-lbfgs-method-and-deep-learning.html)
 * [Solve Poisson Equation on Unit Disk Using Physics-Informed Neural Networks](https://uk.mathworks.com/help/pde/ug/solve-poisson-equation-on-unit-disk-using-pinn.html)
 * [Solve Complex Partial Differential Equation Using Physics-Informed Neural Network](./solve-complex-pde-using-pinn-example)
+* [Solve Helmholtz Equation using Kolmogorov-Arnold Network (KAN)](/kans-helmholtz-equation)
 
 The following video content for PINNs is also available:
 
-* [Using Physics-Informed Machine Learning to Improvie predictive Model Accuracy with Dr. Sam Raymond](https://uk.mathworks.com/company/user_stories/case-studies/using-physics-informed-machine-learning-to-improve-predictive-model-accuracy.html)
+* [Using Physics-Informed Machine Learning to Improve predictive Model Accuracy with Dr. Sam Raymond](https://uk.mathworks.com/company/user_stories/case-studies/using-physics-informed-machine-learning-to-improve-predictive-model-accuracy.html)
 * [Physics-Informed Neural Networks - Podcast hosted by Jousef Murad with Conor Daly](https://youtu.be/eKzHKGVIZMk?feature=shared)
 * [Physics-Informed Neural Networks with MATLAB - Live Coding Session hosted by Jousef Murad with Conor Daly](https://www.youtube.com/live/7ZdALJ2bIKA?feature=shared)
 * [Physics-Informed Neural Networks with MATLAB - Deep Dive Session hosted by Jousef Murad with Conor Daly](https://youtu.be/RTR_RklvAUQ?feature=shared)
