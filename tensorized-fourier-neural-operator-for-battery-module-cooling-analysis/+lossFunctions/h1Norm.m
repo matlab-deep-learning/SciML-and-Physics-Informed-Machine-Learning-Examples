@@ -1,5 +1,5 @@
 function H1 = h1Norm(X, params)
-%H1NORM - Compute H1 norm on a grid.
+%H1NORM Compute H1 norm on a grid.
 %   H1 = H1NORM(X) computes the H1 norm of the input array X
 %   with default parameters.
 %
@@ -32,16 +32,16 @@ function H1 = h1Norm(X, params)
 %     ||u||_{H^1} = (||u||_{L^2}^2 + ||∇u||_{L^2}^2)^{1/2}
 %   where ||∇u||_{L^2}^2 = Σ_i ||∂u/∂x_i||_{L^2}^2.
 %
-%   Input X must be a numeric array of size [B, C, S1, S2, ..., SD]
-%   where B is batch size, C is number of channels, and S1...SD are
-%   spatial dimensions.
+%   Input X must be a numeric array of size [S1, S2, ..., SD, C, B]
+%   where S1...SD are spatial dimensions, C is number of channels,
+%   and B is batch size.
 %
-%   Gradients are estimated using central differences and one-sided 
+%   Gradients are estimated using central differences and one-sided
 %   differences at boundaries (unless periodic boundary conditions).
 %
 %   Example:
 %     B=2; C=1; S1=64; S2=64;
-%     X = randn(B,C,S1,S2);
+%     X = randn(S1,S2,C,B);
 %     H1 = h1Norm(X);
 
 % Copyright 2026 The MathWorks, Inc.
@@ -59,12 +59,12 @@ function H1 = h1Norm(X, params)
     sz = size(X);
     nd = ndims(X);
     if nd < 3
-        error('Input must be at least [B, C, S1].');
+        error('Input must be at least [S1, C, B].');
     end
-    B = sz(1);
-    C = sz(2);
-    spatialSizes = sz(3:end);
-    D = numel(spatialSizes);
+    B = sz(nd);
+    C = sz(nd-1);
+    D = nd - 2;
+    spatialSizes = sz(1:D);
 
     if isempty(params.Spacings)
         params.Spacings = ones(1, D);
@@ -84,21 +84,19 @@ function H1 = h1Norm(X, params)
     if params.IncludeL2
         H1 = lossFunctions.l2Norm(X, Reduction="none", SquareRoot=false, Normalize=false);
     else
-        H1 = zeros(B, 1, 'like', X);
+        H1 = zeros(1, B, 'like', X);
     end
 
-    % Reshape to [B*C, S1, S2, ... Sn] so that all batch, channel
-    % combinations are handled independently.
-    X = reshape(X, [B*C spatialSizes]);
+    % Reshape to [S1, ..., SD, C*B] so all batch/channel combinations are
+    % handled independently along the trailing dimension.
+    X = reshape(X, [spatialSizes, C*B]);
 
-    % Add the H1 seminorm using forward differences.
     for d = 1:D
         delta = params.Spacings(d);
 
-        dm = 1 + d;  % Dimension index of this spatial axis in reshaped X.
-
-        % Central difference with wrap.
-        fd = (circshift(X, -1, dm) - circshift(X, 1, dm)) / (2 * delta);
+        Xfwd = lossFunctions.circShift(X, -1, d);
+        Xbwd = lossFunctions.circShift(X, 1, d);
+        fd = (Xfwd - Xbwd) / (2 * delta);
 
         if ~params.Periodic(d)
             % Replace first/last elements with forward/reverse differences.
@@ -106,17 +104,15 @@ function H1 = h1Norm(X, params)
             if min(spatialSizes) < 4
                 error("Non-periodic dimensions require at least 4 grid points for 3rd-order differences.");
             end
-            
-            fd = applyThirdOrderDifferenceAtBoundary(fd, X, dm, delta);
+            fd = applyThirdOrderDifferenceAtBoundary(fd, X, d, delta);
         end
 
         fd = fd.^2;
 
-        % Reshape back to original size.
+        % Reshape back to [S1, ..., SD, C, B] and sum over all non-batch dims.
         fd = reshape(fd, sz);
-
-        % Sum over channels and spatial dimensions, giving size of [B, 1].
-        fd = sum(fd, 2:nd);
+        fd = sum(fd, 1:nd-1);
+        fd = reshape(fd, 1, B);
 
         % Accumulate per-batch sum.
         H1 = H1 + fd;
@@ -132,9 +128,9 @@ function H1 = h1Norm(X, params)
     end
 
     if strcmp(params.Reduction, "mean")
-        H1 = mean(H1, 1);
+        H1 = mean(H1, 'all');
     elseif strcmp(params.Reduction, "sum")
-        H1 = sum(H1, 1);
+        H1 = sum(H1, 'all');
     end
 end
 
@@ -146,8 +142,7 @@ function fd = applyThirdOrderDifferenceAtBoundary(fd, X, d, delta)
     idx3 = makeIndex(ndims(fd), d, 3);
     idx4 = makeIndex(ndims(fd), d, 4);
 
-    % Apply 3rd-order forward differences at left boundary.
-    fd(idx1{:})= (-11*X(idx1{:}) + 18*X(idx2{:}) - 9*X(idx3{:}) + 2*X(idx4{:})) / (6 * delta);
+    fd(idx1{:}) = (-11*X(idx1{:}) + 18*X(idx2{:}) - 9*X(idx3{:}) + 2*X(idx4{:})) / (6 * delta);
 
     % Get the indices of components for 3rd-order backward differences.
     sz = size(fd, d);
@@ -163,4 +158,4 @@ end
 function idx = makeIndex(ndims, toChange, val)
     idx = repmat({':'}, 1, ndims);
     idx{toChange} = val;
-end 
+end

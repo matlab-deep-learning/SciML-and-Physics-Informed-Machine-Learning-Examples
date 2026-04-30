@@ -1,5 +1,5 @@
 function L2 = l2Norm(X, params)
-%L2NORM - Compute L2 norm on a grid.
+%L2NORM Compute L2 norm on a grid.
 %   L2 = L2NORM(X) computes the L2 norm of the input array X
 %   with default parameters.
 %
@@ -17,13 +17,13 @@ function L2 = l2Norm(X, params)
 %     Normalize     - If true, divides output by C*prod(S1, S2, ...).
 %                     The default value is false.
 %
-%   Input X must be a numeric array of size [B, C, S1, S2, ..., SD]
-%   where B is batch size, C is number of channels, and S1...SD are
-%   spatial dimensions.
+%   Input X must be a numeric array of size [S1, S2, ..., SD, C, B]
+%   where S1...SD are spatial dimensions, C is number of channels,
+%   and B is batch size.
 %
 %   Example:
 %     B=2; C=1; S1=64; S2=64;
-%     X = randn(B,C,S1,S2);
+%     X = randn(S1,S2,C,B);
 %     L2 = l2Norm(X);
 
 % Copyright 2026 The MathWorks, Inc.
@@ -36,11 +36,12 @@ function L2 = l2Norm(X, params)
     end
 
     sz = size(X);
+    B = sz(end);
 
-    % Convert to BxCS
-    X = reshape(X, sz(1), []);
+    % Reshape to [prod(S*C), B]
+    X = reshape(X, [], B);
 
-    L2 = sum(abs(X.^2), 2); % Bx1, abs() needed for complex values
+    L2 = sum(abs(X.^2), 1); % [1, B]
 
     if params.SquareRoot
         L2 = sqrt(L2);
@@ -53,7 +54,6 @@ function L2 = l2Norm(X, params)
     end
 
     if params.Normalize
-        L2 = L2/(prod(sz(2:end)));
+        L2 = L2 / prod(sz(1:end-1));
     end
-
 end

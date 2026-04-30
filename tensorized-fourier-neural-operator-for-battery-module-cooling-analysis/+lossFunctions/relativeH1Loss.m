@@ -32,25 +32,25 @@ function loss = relativeH1Loss(pred, gt, params)
 %   The relative H1 loss is defined as:
 %     loss = ||pred - gt||_{H^1} / ||gt||_{H^1}
 %   where the H1 norm measures both function values and their gradients.
-%   This was proposed by 
+%   This was proposed by
 %   Czarnecki, Wojciech M., et al. "Sobolev Training for Neural Networks."
 %   Advances in Neural Information Processing Systems (2017).
 %
-%   Inputs PRED and GT must be dlarrays of size [B, C, S1, S2, ..., SD]
-%   where B is batch size, C is number of channels, and S1...SD are
-%   spatial dimensions.
+%   Inputs PRED and GT must be dlarrays of identical size. They are
+%   internally permuted to [S1, ..., SD, C, B] physical order before
+%   computation.
 %
 %   The loss is calculated per sample in the batch and then reduced
 %   according to the Reduction parameter.
 %
 %   Example:
 %     B=2; C=1; S1=64; S2=64;
-%     pred = dlarray(randn(B,C,S1,S2));
-%     gt = dlarray(randn(B,C,S1,S2));
+%     pred = dlarray(randn(S1,S2,C,B), 'SSCB');
+%     gt = dlarray(randn(S1,S2,C,B), 'SSCB');
 %     loss = relativeH1Loss(pred, gt);
 
 % Copyright 2026 The MathWorks, Inc.
-        
+
     arguments
         pred dlarray
         gt dlarray
@@ -66,22 +66,22 @@ function loss = relativeH1Loss(pred, gt, params)
         error('pred and gt must have identical size.');
     end
 
+    pred = lossFunctions.permuteDimFirst(pred);
+    gt = lossFunctions.permuteDimFirst(gt);
+
+    sz = size(pred);
+    nd = ndims(pred);
+    D = nd - 2;
+
     if isempty(params.SpatialSizes)
-        params.SpatialSizes = ones(1, ndims(gt) - 2);
+        params.SpatialSizes = ones(1, D);
     elseif isscalar(params.SpatialSizes)
-        params.SpatialSizes = repmat(params.SpatialSizes, 1, ndims(gt) - 2);
-    elseif numel(params.SpatialSizes) ~= ndims(gt) - 2
+        params.SpatialSizes = repmat(params.SpatialSizes, 1, D);
+    elseif numel(params.SpatialSizes) ~= D
         error('SpatialSizes must have length equal to the number of spatial dimensions.');
     end
 
-    % Ensure that dimension order is [B, C, S1, S2, ... Sn].
-    pred = lossFunctions.permuteDimFirst(pred, "C");
-    gt = lossFunctions.permuteDimFirst(gt, "C");
-    pred = lossFunctions.permuteDimFirst(pred, "B");
-    gt = lossFunctions.permuteDimFirst(gt, "B");
-
-    sz = size(pred);
-    quadrature = params.SpatialSizes./sz(3:end);
+    quadrature = params.SpatialSizes./sz(1:D);
 
     num = lossFunctions.h1Norm(gt - pred, ...
         Spacings=quadrature, ...
@@ -98,7 +98,7 @@ function loss = relativeH1Loss(pred, gt, params)
         Periodic=params.Periodic);
 
      loss = num./(den + params.Epsilon);
-   
+
      switch params.Reduction
          case "mean"
              loss = mean(loss);
