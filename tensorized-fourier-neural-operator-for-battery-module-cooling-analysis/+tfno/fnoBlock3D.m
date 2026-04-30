@@ -13,8 +13,7 @@ function layer = fnoBlock3D(numModes,latentChannelSize,args)
 %    "NumMLPLayers"            Number of MLP layers (default: 2)
 %    "MLPExpansion"            Channel expansion factor for MLP (default: 0.5)
 %    "Name"                    Name for the layer (default: "")
-%    "LinearFNOSkip"           Enable linear skip connection for FNO (default: true)
-%    "ChannelMLPSkip"          Enable channel-wise skip connection (default: true)
+%    "SkipConnectionMode"      Skip connection type: "identity" or "linear" (default: "linear")
 %    "Rank"                    Rank for spectral convolution (default: 1)
 %    "UseSpectralConvBias"     Use bias in spectral convolution (default: true)
 %    "FuseSpectralConv"       Directly contract spectral activations with tensorized weights (default: true)
@@ -33,8 +32,7 @@ arguments
     args.NumMLPLayers (1, 1) double {mustBePositive, mustBeInteger, mustBeFinite} = 2
     args.MLPExpansion (1, 1) double {mustBePositive, mustBeLessThan(args.MLPExpansion, 1)} = 0.5
     args.Name (1, 1) string = ""
-    args.LinearFNOSkip (1, 1) logical = true
-    args.ChannelMLPSkip (1, 1) logical = true
+    args.SkipConnectionMode (1, 1) string {mustBeMember(args.SkipConnectionMode, ["identity", "linear"])} = "linear"
     args.Rank (1, 1) double {mustBeBetween(args.Rank, 0, 1)} = 1
     args.UseSpectralConvBias (1, 1) logical = true
     args.FuseSpectralConv (1, 1) logical = true
@@ -64,19 +62,17 @@ end
     
     net = addLayers(net, layers);
 
-    if args.LinearFNOSkip
+    if args.SkipConnectionMode == "linear"
+        % Linear skip around spectral convolution (1x1 conv)
         net = addLayers(net, convolution3dLayer(1, latentChannelSize, Name="fnoSkip", BiasLearnRateFactor=0));
         net = connectLayers(net, "in", "fnoSkip");
         net = connectLayers(net, "fnoSkip", "add1/in2");
-    else
-        net = connectLayers(net, "in", "add1/in2");
-    end
-
-    if args.ChannelMLPSkip
+        % Depthwise skip around channel MLP (per-channel scaling)
         net = addLayers(net, tfno.depthwiseConv3dLayer(latentChannelSize, Name="channelSkip"));
         net = connectLayers(net, "in", "channelSkip");
         net = connectLayers(net, "channelSkip", "add2/in2");
     else
+        net = connectLayers(net, "in", "add1/in2");
         net = connectLayers(net, "in", "add2/in2");
     end
 

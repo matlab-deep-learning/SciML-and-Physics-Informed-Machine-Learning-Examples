@@ -12,8 +12,7 @@ function net = tfno3d(numModes, latentChannelSize, args)
 %    OutChannels            - Number of output channels (default: 1)
 %    SpatialLimits          - Spatial domain limits [min1, max1; min2, max2; min3, max3] (default: [0, 1; 0, 1; 0, 1])
 %    SpectralRank           - Rank for spectral convolution (0-1) (default: 1)
-%    LinearFNOSkip          - Enable linear skip connection (default: true)
-%    ChannelMLPSkip         - Enable channel MLP skip connection (default: true)
+%    SkipConnectionMode     - Skip connection type: "identity" or "linear" (default: "linear")
 %    UseSpectralConvBias    - Use bias in spectral convolution (default: true)
 %    FuseSpectralConv       - Directly contract spectral activations with tensorized weights (default: true)
 %
@@ -39,8 +38,7 @@ function net = tfno3d(numModes, latentChannelSize, args)
         args.OutChannels (1, 1) double = 1
         args.SpatialLimits (3, 2) double = [0 1; 0 1; 0 1]
         args.SpectralRank (1, 1) double {mustBeInRange(args.SpectralRank, 0, 1)} = 1
-        args.LinearFNOSkip (1, 1) logical = true
-        args.ChannelMLPSkip (1, 1) logical = true
+        args.SkipConnectionMode (1, 1) string {mustBeMember(args.SkipConnectionMode, ["identity", "linear"])} = "linear"
         args.UseSpectralConvBias (1, 1) logical = true
         args.FuseSpectralConv (1, 1) logical = true
     end
@@ -55,8 +53,7 @@ function net = tfno3d(numModes, latentChannelSize, args)
     for i = 1:args.NumBlocks
         layers(end+1) = tfno.fnoBlock3D(numModes, latentChannelSize, ...
             Rank=args.SpectralRank, ...
-            LinearFNOSkip=args.LinearFNOSkip, ...
-            ChannelMLPSkip=args.ChannelMLPSkip, ...
+            SkipConnectionMode=args.SkipConnectionMode, ...
             UseSpectralConvBias=args.UseSpectralConvBias, ...
             FuseSpectralConv=args.FuseSpectralConv);
     end
