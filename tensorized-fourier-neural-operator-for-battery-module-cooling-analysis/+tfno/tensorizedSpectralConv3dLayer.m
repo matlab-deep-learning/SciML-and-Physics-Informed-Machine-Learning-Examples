@@ -100,7 +100,7 @@ classdef tensorizedSpectralConv3dLayer < nnet.layer.Layer ...
             numModes(2:end) = numModes(2:end)*2 - 1;
             this.NumChannels = inChannels;
 
-            if isempty(this.Weights) || isempty(this.Core)
+            if isempty(this.Weights) && isempty(this.Core)
                 if this.Tensorized
                     this = this.initializeTucker(inChannels, outChannels, numModes);
                 else
