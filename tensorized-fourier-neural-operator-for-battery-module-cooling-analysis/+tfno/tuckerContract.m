@@ -82,7 +82,7 @@ function Y = tuckerContract(X, core, factors)
     core = reshape(core, [RC, RC, 1, spatialSizes]); % [RC, RC, 1, S1..Sd]
 
     Z = pagemtimes(core, X); % [RC, 1, B, S1..Sd]
-    Z = permute(squeeze(Z), [2:ndims(Z)-1, 1]); % [B, S1..Sd, RC]
+    Z = permute(Z, [2:ndims(Z), 1]); % [1, B, S1..Sd, RC]
 
     % 4) Expand to channels: Y_b = Z * Uout'  -> [B, S1..Sd, C]
     Y = reshape(reshape(Z, [], RC) * Uout.', [B, spatialSizes, size(Uout,1)]);
