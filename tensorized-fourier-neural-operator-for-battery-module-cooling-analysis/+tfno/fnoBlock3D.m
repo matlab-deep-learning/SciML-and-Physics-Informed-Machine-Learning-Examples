@@ -10,7 +10,6 @@ function layer = fnoBlock3D(numModes,latentChannelSize,args)
 %    latentChannelSize - Number of channels in the latent representation
 %
 %  Supported Name-Value pairs are:
-%    "NumMLPLayers"            Number of MLP layers (default: 2)
 %    "MLPExpansion"            Channel expansion factor for MLP (default: 0.5)
 %    "Name"                    Name for the layer (default: "")
 %    "SkipConnectionMode"      Skip connection type: "identity" or "linear" (default: "linear")
@@ -29,7 +28,6 @@ function layer = fnoBlock3D(numModes,latentChannelSize,args)
 arguments
     numModes (1, 3) double {mustBePositive, mustBeInteger, mustBeFinite}
     latentChannelSize (1, 1) double {mustBePositive, mustBeInteger, mustBeFinite}
-    args.NumMLPLayers (1, 1) double {mustBePositive, mustBeInteger, mustBeFinite} = 2
     args.MLPExpansion (1, 1) double {mustBePositive, mustBeLessThan(args.MLPExpansion, 1)} = 0.5
     args.Name (1, 1) string = ""
     args.SkipConnectionMode (1, 1) string {mustBeMember(args.SkipConnectionMode, ["identity", "linear"])} = "linear"
