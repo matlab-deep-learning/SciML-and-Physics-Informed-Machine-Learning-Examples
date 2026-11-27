@@ -53,6 +53,7 @@ Neural ordinary differential equations incorporate solving an ODE as a fundament
 Explore the following examples on neural ODEs.
 
 * [Universal Differential Equations](./universal-differential-equations/)
+* [Neural ODEs for Stiff Systems](/neural-odes-for-stiff-systems/)
 * [Dynamical System Modeling Using Neural ODE](https://uk.mathworks.com/help/deeplearning/ug/dynamical-system-modeling-using-neural-ode.html)
 * [Train Latent ODE Network with Irregularly Sampled Time-Series Data](https://uk.mathworks.com/help/deeplearning/ug/train-latent-ode-network-with-irregularly-sampled-time-series-data.html)
 
